@@ -34,6 +34,9 @@ pub fn main() !void {
             try day1.run(threaded_io.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day2")) {
             try day2.run(threaded_io.io(), gpa);
+        } else if (std.mem.eql(u8, arg, "day3")) {
+            const day3 = @import("day3/solution.zig");
+            try day3.run(threaded_io.io(), gpa);
         } else {
             std.debug.print("Unknown day: {s}\n", .{arg});
         }
