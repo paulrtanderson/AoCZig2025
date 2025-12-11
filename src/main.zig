@@ -2,6 +2,8 @@ const std = @import("std");
 const aoc = @import("aoc");
 const day1 = @import("day1/solution.zig");
 const day2 = @import("day2/solution.zig");
+const day3 = @import("day3/solution.zig");
+const day4 = @import("day4/solution.zig");
 
 const builtin = @import("builtin");
 
@@ -32,8 +34,9 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "day2")) {
             try day2.run(threaded_io.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day3")) {
-            const day3 = @import("day3/solution.zig");
             try day3.run(threaded_io.io(), gpa);
+        } else if (std.mem.eql(u8, arg, "day4")) {
+            try day4.run(threaded_io.io(), gpa);
         } else {
             std.debug.print("Unknown day: {s}\n", .{arg});
         }

@@ -13,6 +13,11 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const filehelper_mod = b.createModule(.{
+        .root_source_file = b.path("src/FileHelper.zig"),
+    });
+    exe.root_module.addImport("filehelper", filehelper_mod);
+
     b.installArtifact(exe);
 
     const run_step = b.step("run", "Run the app");

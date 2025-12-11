@@ -1,7 +1,7 @@
 const std = @import("std");
 var timer: std.time.Timer = undefined;
 const filepath = "src/day3/input.txt";
-const readFileAlloc = @import("../fileHelper.zig").readFileAlloc;
+const readFileAlloc = @import("filehelper").readFileAlloc;
 
 pub fn part1(inputData: []const u8) u64 {
     var it = std.mem.tokenizeScalar(u8, inputData, '\n');

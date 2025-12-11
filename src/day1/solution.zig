@@ -1,7 +1,7 @@
 var input = @embedFile("input.txt");
 const std = @import("std");
 const assert = std.debug.assert;
-const filepath = "src/dayone/input.txt";
+const filepath = "src/day1/input.txt";
 
 pub fn impl1() !void {
     var ended_on_zero_count: u32 = 0;
@@ -38,7 +38,7 @@ pub fn impl1() !void {
     std.debug.print("new code {d}\n", .{clicked_onto_zero_count});
 }
 
-const readFileAlloc = @import("../fileHelper.zig").readFileAlloc;
+const readFileAlloc = @import("filehelper").readFileAlloc;
 
 pub fn alternateWithAllocation(io: std.Io, allocator: std.mem.Allocator) !void {
     const file_data = try readFileAlloc(allocator, filepath, io);

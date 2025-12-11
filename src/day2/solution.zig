@@ -1,6 +1,6 @@
 const std = @import("std");
 const filepath = "src/day2/input.txt";
-const readFileAlloc = @import("../fileHelper.zig").readFileAlloc;
+const readFileAlloc = @import("filehelper").readFileAlloc;
 const assert = std.debug.assert;
 
 var operation_count: usize = 0;
