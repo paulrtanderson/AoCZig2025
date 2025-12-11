@@ -31,10 +31,13 @@ pub fn part2(inputData: []const u8) u64 {
 
     var total: u64 = 0;
     var buffer: [12]u8 = undefined;
+
+    const number_of_digits = 12;
+
     while (it.next()) |line| {
         var previous_max_index: usize = 0;
-        for (0..12) |i| {
-            const max_arg = std.sort.argMax(u8, line[previous_max_index .. line.len - (11 - i)], {}, std.sort.asc(u8)) orelse unreachable;
+        for (0..number_of_digits) |i| {
+            const max_arg = std.sort.argMax(u8, line[previous_max_index .. line.len - (number_of_digits - 1 - i)], {}, std.sort.asc(u8)) orelse unreachable;
             const max_value = line[previous_max_index + max_arg];
 
             std.debug.assert(max_value >= '0' and max_value <= '9');
