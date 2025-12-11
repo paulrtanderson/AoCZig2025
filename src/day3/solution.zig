@@ -30,9 +30,9 @@ pub fn part2(inputData: []const u8) u64 {
     var it = std.mem.tokenizeScalar(u8, inputData, '\n');
 
     var total: u64 = 0;
-    var buffer: [12]u8 = undefined;
 
     const number_of_digits = 12;
+    var buffer: [number_of_digits]u8 = undefined;
 
     while (it.next()) |line| {
         var previous_max_index: usize = 0;
