@@ -172,25 +172,20 @@ const SmartSolution = struct {
                     const num_repetitions: u8 = @intCast(num_repetitions_usize);
 
                     const generalised_repunit = generalisedRepunit(num_digits_in_repeating_pattern, num_repetitions);
+
+                    // if the smallest possible value with this pattern exceeds the range, break
                     if (pattern_min * generalised_repunit > range.end) break;
 
-                    // pattern_val must therefore satisfy:
-                    // range.start <= pattern_val * generalised_repunit <= range.end
-                    // so early numeric bounds are:
-                    const pattern_val_lower_bound = std.math.divCeil(u64, range.start, generalised_repunit) catch 0;
-                    const pattern_val_upper_bound = @divFloor(range.end, generalised_repunit);
+                    // we know that start ≤ pattern_val * R ≤ end
+                    // therefore start / R ≤ pattern_val ≤ end / R
+                    const lower = std.math.divCeil(u64, range.start, generalised_repunit) catch unreachable;
+                    const upper = @divFloor(range.end, generalised_repunit);
 
-                    if (pattern_val_upper_bound < pattern_val_lower_bound) {
-                        continue;
-                    }
+                    const min_pattern_val = @max(pattern_min, lower);
+                    const max_pattern_val = @min(pattern_max, upper);
 
-                    // but pattern_val must also be within pattern_min and pattern_max
-                    const min_pattern_val: u64 = @max(pattern_min, pattern_val_lower_bound);
-                    const max_pattern_val: u64 = @min(pattern_max, pattern_val_upper_bound);
-
-                    if (max_pattern_val < min_pattern_val) {
-                        continue;
-                    }
+                    // If empty intersection, skip
+                    if (min_pattern_val > max_pattern_val) continue;
 
                     for (min_pattern_val..max_pattern_val + 1) |pattern_val| {
                         operation_count += 1;
