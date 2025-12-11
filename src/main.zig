@@ -11,15 +11,12 @@ pub fn main() !void {
     var threaded_io: std.Io.Threaded = .init_single_threaded;
     defer threaded_io.deinit();
 
-    const gpa = gpa: {
-        if (builtin.mode == .Debug) {
-            break :gpa debug_allocator.allocator();
-        } else {
-            break :gpa std.heap.smp_allocator;
-        }
+    const gpa, const is_debug = switch (builtin.mode) {
+        .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+        .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
     };
 
-    defer if (builtin.mode == .Debug) {
+    defer if (is_debug) {
         std.debug.assert(debug_allocator.deinit() == .ok);
     };
 
