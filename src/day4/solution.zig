@@ -63,12 +63,10 @@ test part1 {
 
 pub fn part2(inputData: []u8) u64 {
     var total: u64 = 0;
-
-    var subtotal: u64 = 1;
-
-    while (subtotal != 0) {
-        subtotal = removeRolls(inputData);
+    while (true) {
+        const subtotal = removeRolls(inputData);
         total += subtotal;
+        if (subtotal == 0) break;
     }
 
     return total;
