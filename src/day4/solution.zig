@@ -78,6 +78,8 @@ fn removeRolls(rolls: []u8) u64 {
 
     var previous_row_maybe: ?[]const u8 = null;
     while (it.next()) |token_const| : (previous_row_maybe = token_const) {
+        // this is safe because the underlying buffer comes from rolls: []u8 which is mutable
+        // the slice also doesn't include any delimiters so it shouldn't affect the tokenize iterator
         var line = @constCast(token_const);
 
         const next_row_maybe = it.peek();
@@ -95,12 +97,10 @@ fn removeRolls(rolls: []u8) u64 {
             else
                 0;
 
-            const lower_count: u8 = blk: {
-                if (next_row_maybe) |next_row| {
-                    break :blk @intCast(std.mem.countScalar(u8, next_row[left_bound..right_bound], '@'));
-                }
-                break :blk 0;
-            };
+            const lower_count: u8 = if (next_row_maybe) |next_row|
+                @intCast(std.mem.countScalar(u8, next_row[left_bound..right_bound], '@'))
+            else
+                0;
 
             const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
             const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
