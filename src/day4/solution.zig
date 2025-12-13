@@ -2,6 +2,7 @@ const std = @import("std");
 const readFileAlloc = @import("filehelper").readFileAlloc;
 var timer: std.time.Timer = undefined;
 const filepath = "src/day4/input.txt";
+const assert = std.debug.assert;
 
 pub fn part1(inputData: []const u8) u64 {
     var it = std.mem.tokenizeScalar(u8, inputData, '\n');
@@ -60,9 +61,103 @@ test part1 {
     std.debug.assert(result == 13);
 }
 
-pub fn part2(inputData: []const u8) u64 {
-    _ = inputData;
-    return 0;
+pub fn part2(inputData: []u8, gpa: std.mem.Allocator) !u64 {
+    var lines = std.ArrayList([]u8){};
+    defer lines.deinit(gpa);
+
+    // worst case: every line is 1 byte + '\n'
+    try lines.ensureTotalCapacity(gpa, inputData.len);
+
+    var it = std.mem.tokenizeScalar(u8, inputData, '\n');
+    while (it.next()) |line| {
+        const start = it.index - line.len;
+        lines.appendAssumeCapacity(inputData[start .. start + line.len]);
+    }
+
+    var total: u64 = 0;
+
+    var subtotal: u64 = 1;
+
+    while (subtotal != 0) {
+        subtotal = 0;
+        for (lines.items, 0..) |line, i| {
+            for (line, 0..) |*c, col| {
+                assert(c.* == '.' or c.* == '@');
+                if (c.* != '@') continue;
+
+                const left = if (col == 0) 0 else col - 1;
+                const right = @min(col + 2, line.len);
+
+                const upper: u8 = if (i > 0)
+                    @intCast(std.mem.countScalar(u8, lines.items[i - 1][left..right], '@'))
+                else
+                    0;
+
+                const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
+                const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
+
+                const lower: u8 = if (i + 1 < lines.items.len)
+                    @intCast(std.mem.countScalar(u8, lines.items[i + 1][left..right], '@'))
+                else
+                    0;
+
+                const s = upper + left_el + right_el + lower;
+                if (s < 4) {
+                    c.* = '.';
+                    subtotal += 1;
+                }
+            }
+        }
+        total += subtotal;
+    }
+
+    return total;
+}
+
+fn removeRolls(rolls: []u8) u64 {
+    var total: u64 = 0;
+    var it = std.mem.tokenizeScalar(u8, rolls, '\n');
+    var previous_row: ?[]const u8 = null;
+    var line: []u8 = undefined;
+    while (it.peek()) |token| : (previous_row = line) {
+        const start = it.index;
+        const end = start + token.len;
+        line = rolls[start..end];
+
+        _ = it.next();
+
+        for (line, 0..) |*cell, col| {
+            assert(cell.* == '.' or cell.* == '@');
+
+            if (cell.* != '@') continue;
+
+            const left = if (col == 0) 0 else col - 1;
+            const right = @min(col + 2, line.len);
+
+            const upper: u8 = if (previous_row) |pr|
+                @intCast(std.mem.countScalar(u8, pr[left..right], '@'))
+            else
+                0;
+
+            const lower: u8 = blk: {
+                if (it.peek()) |next_row| {
+                    break :blk @intCast(std.mem.countScalar(u8, next_row[left..right], '@'));
+                }
+                break :blk 0;
+            };
+
+            const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
+            const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
+
+            const s = upper + left_el + right_el + lower;
+            if (s < 4) {
+                rolls[start + col] = '.';
+                total += 1;
+            }
+        }
+    }
+
+    return total;
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
@@ -81,7 +176,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const end = timer.read();
 
     const start2 = timer.read();
-    const answer2 = part2(inputData);
+    const answer2 = try part2(file_data.buffer[0 .. file_data.data.len - 1], allocator); // remove trailing newline
     const end2 = timer.read();
 
     var buffer: [1024]u8 = undefined;
