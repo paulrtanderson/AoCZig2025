@@ -89,14 +89,10 @@ pub fn part2(inputData: []u8, gpa: std.mem.Allocator) !u64 {
 fn removeRolls(rolls: []u8) u64 {
     var total: u64 = 0;
     var it = std.mem.tokenizeScalar(u8, rolls, '\n');
-    var previous_row: ?[]const u8 = null;
-    var line: []u8 = undefined;
-    while (it.peek()) |token| : (previous_row = line) {
-        const start = it.index;
-        const end = start + token.len;
-        line = rolls[start..end];
 
-        _ = it.next();
+    var previous_row_maybe: ?[]const u8 = null;
+    while (it.next()) |token_const| : (previous_row_maybe = token_const) {
+        var line = @constCast(token_const);
 
         const next_row_maybe = it.peek();
 
@@ -105,17 +101,17 @@ fn removeRolls(rolls: []u8) u64 {
 
             if (cell.* != '@') continue;
 
-            const left = if (col == 0) 0 else col - 1;
-            const right = @min(col + 2, line.len);
+            const left_bound = if (col == 0) 0 else col - 1;
+            const right_bound = @min(col + 2, line.len);
 
-            const upper: u8 = if (previous_row) |pr|
-                @intCast(std.mem.countScalar(u8, pr[left..right], '@'))
+            const upper_count: u8 = if (previous_row_maybe) |previous_row|
+                @intCast(std.mem.countScalar(u8, previous_row[left_bound..right_bound], '@'))
             else
                 0;
 
-            const lower: u8 = blk: {
+            const lower_count: u8 = blk: {
                 if (next_row_maybe) |next_row| {
-                    break :blk @intCast(std.mem.countScalar(u8, next_row[left..right], '@'));
+                    break :blk @intCast(std.mem.countScalar(u8, next_row[left_bound..right_bound], '@'));
                 }
                 break :blk 0;
             };
@@ -123,7 +119,7 @@ fn removeRolls(rolls: []u8) u64 {
             const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
             const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
 
-            const s = upper + left_el + right_el + lower;
+            const s = upper_count + left_el + right_el + lower_count;
             if (s < 4) {
                 cell.* = '.';
                 total += 1;
