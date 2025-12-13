@@ -79,35 +79,7 @@ pub fn part2(inputData: []u8, gpa: std.mem.Allocator) !u64 {
     var subtotal: u64 = 1;
 
     while (subtotal != 0) {
-        subtotal = 0;
-        for (lines.items, 0..) |line, i| {
-            for (line, 0..) |*c, col| {
-                assert(c.* == '.' or c.* == '@');
-                if (c.* != '@') continue;
-
-                const left = if (col == 0) 0 else col - 1;
-                const right = @min(col + 2, line.len);
-
-                const upper: u8 = if (i > 0)
-                    @intCast(std.mem.countScalar(u8, lines.items[i - 1][left..right], '@'))
-                else
-                    0;
-
-                const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
-                const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
-
-                const lower: u8 = if (i + 1 < lines.items.len)
-                    @intCast(std.mem.countScalar(u8, lines.items[i + 1][left..right], '@'))
-                else
-                    0;
-
-                const s = upper + left_el + right_el + lower;
-                if (s < 4) {
-                    c.* = '.';
-                    subtotal += 1;
-                }
-            }
-        }
+        subtotal = removeRolls(inputData);
         total += subtotal;
     }
 
@@ -126,6 +98,8 @@ fn removeRolls(rolls: []u8) u64 {
 
         _ = it.next();
 
+        const next_row_maybe = it.peek();
+
         for (line, 0..) |*cell, col| {
             assert(cell.* == '.' or cell.* == '@');
 
@@ -140,7 +114,7 @@ fn removeRolls(rolls: []u8) u64 {
                 0;
 
             const lower: u8 = blk: {
-                if (it.peek()) |next_row| {
+                if (next_row_maybe) |next_row| {
                     break :blk @intCast(std.mem.countScalar(u8, next_row[left..right], '@'));
                 }
                 break :blk 0;
@@ -151,7 +125,7 @@ fn removeRolls(rolls: []u8) u64 {
 
             const s = upper + left_el + right_el + lower;
             if (s < 4) {
-                rolls[start + col] = '.';
+                cell.* = '.';
                 total += 1;
             }
         }
