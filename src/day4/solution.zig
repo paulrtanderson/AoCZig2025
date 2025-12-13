@@ -61,19 +61,7 @@ test part1 {
     std.debug.assert(result == 13);
 }
 
-pub fn part2(inputData: []u8, gpa: std.mem.Allocator) !u64 {
-    var lines = std.ArrayList([]u8){};
-    defer lines.deinit(gpa);
-
-    // worst case: every line is 1 byte + '\n'
-    try lines.ensureTotalCapacity(gpa, inputData.len);
-
-    var it = std.mem.tokenizeScalar(u8, inputData, '\n');
-    while (it.next()) |line| {
-        const start = it.index - line.len;
-        lines.appendAssumeCapacity(inputData[start .. start + line.len]);
-    }
-
+pub fn part2(inputData: []u8) u64 {
     var total: u64 = 0;
 
     var subtotal: u64 = 1;
@@ -146,7 +134,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const end = timer.read();
 
     const start2 = timer.read();
-    const answer2 = try part2(file_data.buffer[0 .. file_data.data.len - 1], allocator); // remove trailing newline
+    const answer2 = part2(file_data.buffer[0 .. file_data.data.len - 1]); // remove trailing newline
     const end2 = timer.read();
 
     var buffer: [1024]u8 = undefined;
