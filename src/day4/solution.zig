@@ -5,42 +5,38 @@ const filepath = "src/day4/input.txt";
 const assert = std.debug.assert;
 
 pub fn part1(inputData: []const u8) u64 {
+    var total: u64 = 0;
     var it = std.mem.tokenizeScalar(u8, inputData, '\n');
 
-    var total: u64 = 0;
+    var previous_row_maybe: ?[]const u8 = null;
+    while (it.next()) |token| : (previous_row_maybe = token) {
+        const next_row_maybe = it.peek();
 
-    var previous_row: ?[]const u8 = null;
-    var row: u64 = 0;
+        for (token, 0..) |cell, col| {
+            assert(cell == '.' or cell == '@');
 
-    while (it.next()) |line| : (row += 1) {
-        for (line, 0..) |c, col| {
-            if (c != '@') continue;
+            if (cell != '@') continue;
 
-            const left = if (col == 0) 0 else col - 1;
-            const right = @min(col + 2, line.len);
+            const left_bound = if (col == 0) 0 else col - 1;
+            const right_bound = @min(col + 2, token.len);
 
-            const upper: u8 = if (previous_row) |pr|
-                @intCast(std.mem.countScalar(u8, pr[left..right], '@'))
+            const upper_count: u8 = if (previous_row_maybe) |previous_row|
+                @intCast(std.mem.countScalar(u8, previous_row[left_bound..right_bound], '@'))
             else
                 0;
 
-            const left_el: u1 = if (col > 0 and line[col - 1] == '@') 1 else 0;
-            const right_el: u1 = if (col + 1 < line.len and line[col + 1] == '@') 1 else 0;
+            const lower_count: u8 = if (next_row_maybe) |next_row|
+                @intCast(std.mem.countScalar(u8, next_row[left_bound..right_bound], '@'))
+            else
+                0;
 
-            const lower: u8 = blk: {
-                if (it.peek()) |nr| {
-                    break :blk @intCast(std.mem.countScalar(u8, nr[left..right], '@'));
-                }
-                break :blk 0;
-            };
+            const left_el: u1 = if (col > 0 and token[col - 1] == '@') 1 else 0;
+            const right_el: u1 = if (col + 1 < token.len and token[col + 1] == '@') 1 else 0;
 
-            const s = upper + left_el + right_el + lower;
+            const s = upper_count + left_el + right_el + lower_count;
             if (s < 4) total += 1;
         }
-
-        previous_row = line;
     }
-
     return total;
 }
 
