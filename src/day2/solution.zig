@@ -1,13 +1,16 @@
 const std = @import("std");
 const filepath = "src/day2/input.txt";
-const readFileAlloc = @import("filehelper").readFileAlloc;
+const utils = @import("utils");
+const readFileAlloc = utils.readFileAlloc;
 const assert = std.debug.assert;
+const Range = utils.Range;
+const getRange = utils.getRange;
 
 var operation_count: usize = 0;
 var after_io_time: u64 = undefined;
 var timer: std.time.Timer = undefined;
 
-pub const Range = struct { start: u64, end: u64 };
+
 
 const dopartone = false;
 
@@ -91,26 +94,6 @@ fn numDigits(num: u64) u8 {
     return @intCast(std.math.log10_int(num) + 1);
 }
 
-pub fn getRange(range_string: []const u8) !Range {
-    var dash_index: usize = 0;
-    while (dash_index < range_string.len) : (dash_index += 1) {
-        if (range_string[dash_index] == '-') {
-            break;
-        }
-    }
-    const start = std.fmt.parseInt(u64, range_string[0..dash_index], 10) catch |err| {
-        std.debug.print("Error: {} Failed to parse start from range string: '{s}' with start as '{s}'\n", .{ err, range_string, range_string[0..dash_index] });
-        return err;
-    };
-
-    const end = std.fmt.parseInt(u64, range_string[dash_index + 1 ..], 10) catch |err| {
-        std.debug.print("Error: {} Failed to parse end from range string: '{s}' with end as '{s}'\n", .{ err, range_string, range_string[dash_index + 1 ..] });
-        return err;
-    };
-
-    const myRange = Range{ .start = start, .end = end };
-    return myRange;
-}
 
 const SmartSolution = struct {
     const MAX_DIGITS_u64: u8 = 19;

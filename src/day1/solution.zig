@@ -2,6 +2,8 @@ var input = @embedFile("input.txt");
 const std = @import("std");
 const assert = std.debug.assert;
 const filepath = "src/day1/input.txt";
+const utils = @import("utils");
+const readFileAlloc = utils.readFileAlloc;
 
 pub fn impl1() !void {
     var ended_on_zero_count: u32 = 0;
@@ -37,8 +39,6 @@ pub fn impl1() !void {
     std.debug.print("old code {d}\n", .{ended_on_zero_count});
     std.debug.print("new code {d}\n", .{clicked_onto_zero_count});
 }
-
-const readFileAlloc = @import("filehelper").readFileAlloc;
 
 pub fn alternateWithAllocation(io: std.Io, allocator: std.mem.Allocator) !void {
     const file_data = try readFileAlloc(allocator, filepath, io);

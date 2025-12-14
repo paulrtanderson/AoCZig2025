@@ -1,25 +1,22 @@
 const std = @import("std");
-const readFileAlloc = @import("filehelper").readFileAlloc;
 var timer: std.time.Timer = undefined;
 const filepath = "src/day5/input.txt";
-const day2 = @import("../day2/solution.zig");
-const getRange = day2.getRange;
-const Range = day2.Range;
+const utils = @import("utils");
+const readFileAlloc = utils.readFileAlloc;
+const Range = utils.Range;
+const getRange = utils.getRange;
+
+const assert = std.debug.assert;
 
 pub fn part1(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
-    var arr: std.ArrayList(Range) = try .initCapacity(gpa, 100);
-    defer arr.deinit(gpa);
-
     var it = std.mem.splitScalar(u8, inputdata, '\n');
 
+    var arr = try processRanges(gpa, &it);
+    defer arr.deinit(gpa);
+
+    if (arr.items.len == 0) return 0;
+
     var count: u64 = 0;
-    while (it.next()) |token| {
-        if (std.mem.eql(u8, token, "")) {
-            break;
-        }
-        const range = try getRange(token);
-        try arr.append(gpa, range);
-    }
     while (it.next()) |token| {
         const num = try std.fmt.parseInt(u64, token, 10);
         for (arr.items) |item| {
@@ -32,14 +29,54 @@ pub fn part1(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
     return count;
 }
 
+fn compareRangeStart(_: void, r1: Range, r2: Range) bool {
+    return r1.start < r2.start;
+}
+
+pub fn part2(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
+    var it = std.mem.splitScalar(u8, inputdata, '\n');
+
+    var arr = try processRanges(gpa, &it);
+    defer arr.deinit(gpa);
+
+    if (arr.items.len == 0) return 0;
+
+    std.mem.sort(Range, arr.items, {}, compareRangeStart);
+
+    var cur_start: u64 = arr.items[0].start;
+    var cur_end: u64 = arr.items[0].end;
+
+    var count = cur_end + 1 - cur_start;
+
+    for (arr.items[1..]) |range| {
+        cur_start = @max(cur_end + 1, range.start);
+        cur_end = @max(cur_end, range.end);
+
+        count += cur_end + 1 - cur_start;
+    }
+
+    return count;
+}
+
+fn processRanges(gpa: std.mem.Allocator, it_p: *std.mem.SplitIterator(u8, .scalar)) !std.ArrayList(Range) {
+    var arr: std.ArrayList(Range) = try .initCapacity(gpa, 100);
+    errdefer arr.deinit(gpa);
+    var it = it_p.*;
+    while (it.next()) |token| {
+        if (std.mem.eql(u8, token, "")) {
+            break;
+        }
+        const range = try getRange(token);
+        try arr.append(gpa, range);
+    }
+    it_p.* = it;
+
+    return arr;
+}
+
 fn inRange(num: u64, range: Range) bool {
     if (num < range.start or num > range.end) return false;
     return true;
-}
-
-pub fn part2(inputdata: []const u8) u64 {
-    _ = inputdata;
-    return 0;
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
@@ -57,8 +94,18 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const answer = try part1(allocator, inputData);
     const end = timer.read();
 
+    const inputDatatest =
+        \\3-5
+        \\5-14
+        \\14-14
+        \\19-20
+        \\
+        \\
+    ;
+    _ = inputDatatest;
+
     const start2 = timer.read();
-    const answer2 = part2(file_data.buffer[0 .. file_data.data.len - 1]); // remove trailing newline
+    const answer2 = try part2(allocator, inputData); // remove trailing newline
     const end2 = timer.read();
 
     var buffer: [128]u8 = undefined;
@@ -73,4 +120,24 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     try stdout.print("Answer part 2: {d}\n", .{answer2});
 
     try stdout.flush();
+}
+
+test part2 {
+    const inputdata =
+        \\3-5
+        \\10-14
+        \\16-20
+        \\12-18
+    ;
+
+    std.log.debug("running tests!", {});
+    const alloc = std.testing.allocator;
+
+    const res = part2(alloc, inputdata);
+
+    assert(false);
+
+    assert(res catch 0 == 14);
+
+    std.log.debug("test passed!", {});
 }

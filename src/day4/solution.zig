@@ -1,5 +1,6 @@
 const std = @import("std");
-const readFileAlloc = @import("filehelper").readFileAlloc;
+const utils = @import("utils");
+const readFileAlloc = utils.readFileAlloc;
 var timer: std.time.Timer = undefined;
 const filepath = "src/day4/input.txt";
 const assert = std.debug.assert;
