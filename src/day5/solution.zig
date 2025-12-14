@@ -11,26 +11,22 @@ pub fn part1(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
     defer arr.deinit(gpa);
 
     var it = std.mem.splitScalar(u8, inputdata, '\n');
-    var half_way = false;
+
     var count: u64 = 0;
     while (it.next()) |token| {
         if (std.mem.eql(u8, token, "")) {
-            half_way = true;
-            continue;
+            break;
         }
-        if (!half_way) {
-            const range = try getRange(token);
-            try arr.append(gpa, range);
-        } else {
-            const num = try std.fmt.parseInt(u64, token, 10);
-            var fresh = false;
-            for (arr.items) |item| {
-                if (inRange(num, item)) {
-                    fresh = true;
-                    break;
-                }
+        const range = try getRange(token);
+        try arr.append(gpa, range);
+    }
+    while (it.next()) |token| {
+        const num = try std.fmt.parseInt(u64, token, 10);
+        for (arr.items) |item| {
+            if (inRange(num, item)) {
+                count += 1;
+                break;
             }
-            if (fresh) count += 1;
         }
     }
     return count;
