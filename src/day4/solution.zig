@@ -57,6 +57,9 @@ test part1 {
     std.debug.assert(result == 13);
 }
 
+// repeatedly removes rolls until stable
+// a more efficient implementation would do this in one pass
+// but this would require memory allocation in order to cheaply backtrack
 pub fn part2(inputData: []u8) u64 {
     var total: u64 = 0;
     while (true) {

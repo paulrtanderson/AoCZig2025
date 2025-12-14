@@ -7,7 +7,7 @@ var operation_count: usize = 0;
 var after_io_time: u64 = undefined;
 var timer: std.time.Timer = undefined;
 
-const Range = struct { start: u64, end: u64 };
+pub const Range = struct { start: u64, end: u64 };
 
 const dopartone = false;
 
@@ -91,7 +91,7 @@ fn numDigits(num: u64) u8 {
     return @intCast(std.math.log10_int(num) + 1);
 }
 
-fn getRange(range_string: []const u8) !Range {
+pub fn getRange(range_string: []const u8) !Range {
     var dash_index: usize = 0;
     while (dash_index < range_string.len) : (dash_index += 1) {
         if (range_string[dash_index] == '-') {
