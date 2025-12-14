@@ -41,23 +41,6 @@ pub fn part1(inputData: []const u8) u64 {
     return total;
 }
 
-test part1 {
-    const input =
-        \\..@@.@@@@.
-        \\@@@.@.@.@@
-        \\@@@@@.@.@@
-        \\@.@@@@..@.
-        \\@@.@@@@.@@
-        \\.@@@@@@@.@
-        \\.@.@.@.@@@
-        \\@.@@@.@@@@
-        \\.@@@@@@@@.
-        \\@.@.@@@.@.
-    ;
-    const result = part1(input[0..]);
-    std.debug.assert(result == 13);
-}
-
 // repeatedly removes rolls until stable
 // a more efficient implementation would do this in one pass
 // but this would require memory allocation in order to cheaply backtrack

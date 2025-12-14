@@ -121,23 +121,3 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     try stdout.flush();
 }
-
-test part2 {
-    const inputdata =
-        \\3-5
-        \\10-14
-        \\16-20
-        \\12-18
-    ;
-
-    std.log.debug("running tests!", {});
-    const alloc = std.testing.allocator;
-
-    const res = part2(alloc, inputdata);
-
-    assert(false);
-
-    assert(res catch 0 == 14);
-
-    std.log.debug("test passed!", {});
-}

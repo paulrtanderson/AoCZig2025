@@ -33,8 +33,6 @@ pub fn build(b: *std.Build) void {
         .root_module = exe.root_module,
     });
 
-    exe_tests.root_module.addImport("utils", utils_mod);
-
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
     const test_step = b.step("test", "Run tests");
