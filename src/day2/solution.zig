@@ -227,18 +227,19 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const second_end_time = timer.read();
     const operation_count_second = operation_count;
 
-    var buffer: [1024]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&buffer);
+    var buffer: [128]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&buffer);
+    const stdout = &stdout_writer.interface;
 
-    try stdout.interface.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
+    try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
 
-    try stdout.interface.print("First solution answer: {d}\n", .{first_answer});
-    try stdout.interface.print("Elapsed time (first solution): {d} ns\n", .{first_end_time - first_start_time});
-    try stdout.interface.print("Total operations: {d}\n", .{operation_count_first});
+    try stdout.print("First solution answer: {d}\n", .{first_answer});
+    try stdout.print("Elapsed time (first solution): {d} ns\n", .{first_end_time - first_start_time});
+    try stdout.print("Total operations: {d}\n", .{operation_count_first});
 
-    try stdout.interface.print("Smart solution answer: {d}\n", .{answer});
-    try stdout.interface.print("Total operations: {d}\n", .{operation_count_second});
-    try stdout.interface.print("Elapsed time (smart solution): {d} ns\n", .{second_end_time - second_start_time});
+    try stdout.print("Smart solution answer: {d}\n", .{answer});
+    try stdout.print("Total operations: {d}\n", .{operation_count_second});
+    try stdout.print("Elapsed time (smart solution): {d} ns\n", .{second_end_time - second_start_time});
 
-    try stdout.interface.flush();
+    try stdout.flush();
 }

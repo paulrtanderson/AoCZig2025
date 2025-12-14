@@ -70,15 +70,15 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const answer2 = part2(inputData);
     const end2 = timer.read();
 
-    var buffer: [1024]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&buffer);
+    var buffer: [128]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&buffer);
+    const stdout = &stdout_writer.interface;
 
-    try stdout.interface.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
-    try stdout.interface.print("Elapsed time (solution): {d} ns\n", .{end - after_io});
-    try stdout.interface.print("Answer: {d}\n", .{answer});
+    try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
+    try stdout.print("Elapsed time (solution): {d} ns\n", .{end - after_io});
+    try stdout.print("Answer: {d}\n", .{answer});
 
-    try stdout.interface.print("Elapsed time (part 2 solution): {d} ns\n", .{end2 - start2});
-    try stdout.interface.print("Answer part 2: {d}\n", .{answer2});
-
-    try stdout.interface.flush();
+    try stdout.print("Elapsed time (part 2 solution): {d} ns\n", .{end2 - start2});
+    try stdout.print("Answer part 2: {d}\n", .{answer2});
+    try stdout.flush();
 }
