@@ -1,11 +1,8 @@
-var input = @embedFile("input.txt");
 const std = @import("std");
 const assert = std.debug.assert;
 const filepath = "src/day1/input.txt";
-const utils = @import("utils");
-const readFileAlloc = utils.readFileAlloc;
 
-pub fn impl1() !void {
+pub fn impl1(input: []const u8) struct { u32, u32 } {
     var ended_on_zero_count: u32 = 0;
     var it = std.mem.tokenizeScalar(u8, input, '\n');
     var clicked_onto_zero_count: u32 = 0;
@@ -36,15 +33,10 @@ pub fn impl1() !void {
         clicked_onto_zero_count += zeros_passed;
     }
 
-    std.debug.print("old code {d}\n", .{ended_on_zero_count});
-    std.debug.print("new code {d}\n", .{clicked_onto_zero_count});
+    return .{ ended_on_zero_count, clicked_onto_zero_count };
 }
 
-pub fn alternateWithAllocation(io: std.Io, allocator: std.mem.Allocator) !void {
-    const dir = std.Io.Dir.cwd();
-    const inputData = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
-    defer allocator.free(inputData);
-
+pub fn impl2(inputData: []const u8) struct { usize, usize } {
     var dial_value: isize = 50;
     var ended_on_zero_count: usize = 0;
     var clicked_onto_zero_count: usize = 0;
@@ -76,8 +68,7 @@ pub fn alternateWithAllocation(io: std.Io, allocator: std.mem.Allocator) !void {
             }
         }
     }
-    std.debug.print("old code {d}\n", .{ended_on_zero_count});
-    std.debug.print("new code {d}\n", .{clicked_onto_zero_count});
+    return .{ ended_on_zero_count, clicked_onto_zero_count };
 }
 
 pub fn main() !void {
@@ -91,5 +82,29 @@ pub fn main() !void {
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
-    try alternateWithAllocation(io, allocator);
+    const dir = std.Io.Dir.cwd();
+    const inputData = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(inputData);
+
+    _ = impl2(inputData);
+}
+
+test "day1" {
+    const answer1 = @embedFile("answer1.txt");
+    const answer2 = @embedFile("answer2.txt");
+
+    const inputData = @embedFile("input.txt");
+
+    const expected1 = comptime std.fmt.parseInt(u32, answer1, 10) catch unreachable;
+    const expected2 = comptime std.fmt.parseInt(u32, answer2, 10) catch unreachable;
+
+    const impl1_answers = impl1(inputData);
+
+    try std.testing.expectEqual(expected1, impl1_answers[0]);
+    try std.testing.expectEqual(expected2, impl1_answers[1]);
+
+    const impl2_answers = impl2(inputData);
+
+    try std.testing.expectEqual(expected1, impl2_answers[0]);
+    try std.testing.expectEqual(expected2, impl2_answers[1]);
 }

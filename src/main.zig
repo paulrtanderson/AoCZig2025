@@ -50,3 +50,7 @@ pub fn main() !void {
         std.debug.print("Usage: aoc <day>\n", .{});
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}
