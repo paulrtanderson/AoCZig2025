@@ -41,9 +41,9 @@ pub fn impl1() !void {
 }
 
 pub fn alternateWithAllocation(io: std.Io, allocator: std.mem.Allocator) !void {
-    const file_data = try readFileAlloc(allocator, filepath, io);
-    defer allocator.free(file_data.buffer);
-    const inputData = file_data.data;
+    const dir = std.Io.Dir.cwd();
+    const inputData = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(inputData);
 
     var dial_value: isize = 50;
     var ended_on_zero_count: usize = 0;

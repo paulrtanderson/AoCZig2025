@@ -2,7 +2,6 @@ const std = @import("std");
 var timer: std.time.Timer = undefined;
 const filepath = "src/day3/input.txt";
 const utils = @import("utils");
-const readFileAlloc = utils.readFileAlloc;
 
 pub fn part1(inputData: []const u8) u64 {
     var it = std.mem.tokenizeScalar(u8, inputData, '\n');
@@ -58,10 +57,11 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const start = timer.read();
 
     // TODO: this is probably a bad way to benchmark, maybe input data gets put in cache after the solution runs once? idk
-    const file_data = try readFileAlloc(allocator, filepath, io);
-    defer allocator.free(file_data.buffer);
+    const dir = std.Io.Dir.cwd();
+    const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(file_data);
 
-    const inputData = file_data.data[0 .. file_data.data.len - 1]; // remove trailing newline
+    const inputData = file_data[0 .. file_data.len - 1]; // remove trailing newline
     const after_io = timer.read();
 
     const answer = part1(inputData);
@@ -72,7 +72,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const end2 = timer.read();
 
     var buffer: [128]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(io,&buffer);
+    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
