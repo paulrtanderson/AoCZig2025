@@ -10,8 +10,6 @@ var operation_count: usize = 0;
 var after_io_time: u64 = undefined;
 var timer: std.time.Timer = undefined;
 
-
-
 const dopartone = false;
 
 const FirstSolution = struct {
@@ -93,7 +91,6 @@ fn numDigits(num: u64) u8 {
 
     return @intCast(std.math.log10_int(num) + 1);
 }
-
 
 const SmartSolution = struct {
     const MAX_DIGITS_u64: u8 = 19;
@@ -211,7 +208,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const operation_count_second = operation_count;
 
     var buffer: [128]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&buffer);
+    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});

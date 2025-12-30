@@ -1,7 +1,7 @@
 const std = @import("std");
 const ReadFileError = std.Io.Dir.ReadFileError;
 const Allocator = std.mem.Allocator;
-const StatError = std.fs.File.StatError;
+const StatError = std.Io.File.StatError;
 pub const ReadAllocError = Allocator.Error || StatError || ReadFileError;
 
 const FileData = struct {

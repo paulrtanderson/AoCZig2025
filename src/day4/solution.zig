@@ -119,7 +119,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const end2 = timer.read();
 
     var buffer: [128]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&buffer);
+    var stdout_writer = std.Io.File.stdout().writer(io,&buffer);
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
