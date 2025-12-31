@@ -185,9 +185,8 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     // TODO: this is probably a bad way to benchmark, maybe input data gets put in cache after the solution runs once? idk
     const dir = std.Io.Dir.cwd();
-    var file_data_future = io.async(std.Io.Dir.readFileAlloc, .{ dir, io, filepath, allocator, .unlimited });
-    defer if (file_data_future.cancel(io)) |s| allocator.free(s) else |_| {};
-    const file_data = try file_data_future.await(io);
+    const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(file_data);
 
     const inputData = file_data[0 .. file_data.len - 1]; // remove trailing newline
     const after_io = timer.read();
