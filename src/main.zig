@@ -12,13 +12,13 @@ const builtin = @import("builtin");
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
 
 pub fn main() !void {
-    var threaded_io: std.Io.Threaded = .init_single_threaded;
-    defer threaded_io.deinit();
-
     const gpa, const is_debug = switch (builtin.mode) {
         .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
         .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
     };
+
+    var threaded: std.Io.Threaded = .init(gpa, .{});
+    defer threaded.deinit();
 
     defer if (is_debug) {
         std.debug.assert(debug_allocator.deinit() == .ok);
@@ -32,17 +32,17 @@ pub fn main() !void {
 
     if (args_iter.next()) |arg| {
         if (std.mem.eql(u8, arg, "day1")) {
-            try day1.run(threaded_io.io(), gpa);
+            try day1.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day2")) {
-            try day2.run(threaded_io.io(), gpa);
+            try day2.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day3")) {
-            try day3.run(threaded_io.io(), gpa);
+            try day3.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day4")) {
-            try day4.run(threaded_io.io(), gpa);
+            try day4.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day5")) {
-            try day5.run(threaded_io.io(), gpa);
+            try day5.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day6")) {
-            try day6.run(threaded_io.io(), gpa);
+            try day6.run(threaded.io(), gpa);
         } else {
             std.debug.print("Unknown day: {s}\n", .{arg});
         }
