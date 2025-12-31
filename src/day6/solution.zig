@@ -111,7 +111,6 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
     defer allocator.free(file_data);
 
-
     const inputData = file_data[0 .. file_data.len - 1]; // remove trailing newline
     const after_io = timer.read();
 
