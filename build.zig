@@ -3,11 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     const test_step = b.step("test", "Run tests");
-    const check = b.step("check", "Check if foo compiles");
+    const check = b.step("check", "Check if aoc compiles");
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const utils_mod = b.createModule(.{
+    const utils_module = b.createModule(.{
         .root_source_file = b.path("src/utils.zig"),
     });
     const root_module = b.createModule(.{
@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    root_module.addImport("utils", utils_mod);
+    root_module.addImport("utils", utils_module);
 
     // main executable
     const exe = b.addExecutable(.{
@@ -23,9 +23,11 @@ pub fn build(b: *std.Build) void {
         .root_module = root_module,
     });
     b.installArtifact(exe);
+
     const run_cmd = b.addRunArtifact(exe);
-    run_step.dependOn(&run_cmd.step);
     run_cmd.step.dependOn(b.getInstallStep());
+    run_step.dependOn(&run_cmd.step);
+    // so that `zig build run` can accept args
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
@@ -38,9 +40,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_tests.step);
 
     // check step for ZLS
-    const exe_check = b.addExecutable(.{
-        .name = "aoc",
-        .root_module = root_module,
-    });
-    check.dependOn(&exe_check.step);
+    check.dependOn(&exe.step);
+    check.dependOn(&exe_tests.step);
 }
