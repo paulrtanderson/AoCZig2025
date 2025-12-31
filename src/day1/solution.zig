@@ -89,21 +89,20 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     _ = impl2(inputData);
 }
 
-test "day1" {
-    const answer1 = @embedFile("answer1.txt");
-    const answer2 = @embedFile("answer2.txt");
+const test_input_data = @embedFile("input.txt");
 
-    const inputData = @embedFile("input.txt");
+const expected1 = 969;
+const expected2 = 5887;
 
-    const expected1 = comptime std.fmt.parseInt(u32, answer1, 10) catch unreachable;
-    const expected2 = comptime std.fmt.parseInt(u32, answer2, 10) catch unreachable;
-
-    const impl1_answers = impl1(inputData);
+test "impl1" {
+    const impl1_answers = impl1(test_input_data);
 
     try std.testing.expectEqual(expected1, impl1_answers[0]);
     try std.testing.expectEqual(expected2, impl1_answers[1]);
+}
 
-    const impl2_answers = impl2(inputData);
+test "impl2" {
+    const impl2_answers = impl2(test_input_data);
 
     try std.testing.expectEqual(expected1, impl2_answers[0]);
     try std.testing.expectEqual(expected2, impl2_answers[1]);

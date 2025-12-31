@@ -9,10 +9,8 @@ var operation_count: usize = 0;
 var after_io_time: u64 = undefined;
 var timer: std.time.Timer = undefined;
 
-const dopartone = false;
-
 const FirstSolution = struct {
-    pub fn solution(inputData: []const u8) !u64 {
+    pub fn solution(inputData: []const u8) !struct { u64, u64 } {
         var it = std.mem.tokenizeScalar(u8, inputData, ',');
 
         var sum_of_invalid_ids: u64 = 0;
@@ -23,17 +21,15 @@ const FirstSolution = struct {
 
             for (range.start..range.end + 1) |num| {
                 const id: u64 = @intCast(num);
-                if (dopartone) {
-                    if (repeatsTwice(id)) {
-                        sum_of_invalid_ids += num;
-                    }
+                if (repeatsTwice(id)) {
+                    sum_of_invalid_ids += num;
                 }
                 if (!isValid2(id)) {
                     sum_of_2nd_invalid_ids += num;
                 }
             }
         }
-        return sum_of_2nd_invalid_ids;
+        return .{ sum_of_invalid_ids, sum_of_2nd_invalid_ids };
     }
 
     fn repeatsLengthN(id: u64, n: u8, num_digits: u8) bool {
@@ -197,7 +193,9 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     operation_count = 0;
     const first_start_time = timer.read();
-    const first_answer = try FirstSolution.solution(inputData);
+    const first_answers = try FirstSolution.solution(inputData);
+    const first_answer = first_answers[0];
+    const part2 = first_answers[1];
     const first_end_time = timer.read();
     const operation_count_first = operation_count;
 
@@ -213,7 +211,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
 
-    try stdout.print("First solution answer: {d}\n", .{first_answer});
+    try stdout.print("First solution answer - part1: {d} part2: {d}\n", .{ first_answer, part2 });
     try stdout.print("Elapsed time (first solution): {d} ns\n", .{first_end_time - first_start_time});
     try stdout.print("Total operations: {d}\n", .{operation_count_first});
 
@@ -222,4 +220,21 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     try stdout.print("Elapsed time (smart solution): {d} ns\n", .{second_end_time - second_start_time});
 
     try stdout.flush();
+}
+
+const inputData1 = @embedFile("input.txt");
+const trimmed_data = inputData1[0 .. inputData1.len - 1];
+const expected1 = 28146997880;
+const expected2 = 40028128307;
+test "Smart" {
+    const smart_answers = try SmartSolution.solution(trimmed_data, std.testing.allocator);
+
+    try std.testing.expectEqual(expected2, smart_answers);
+}
+
+test "First" {
+    const first_answers = try FirstSolution.solution(trimmed_data);
+
+    try std.testing.expectEqual(expected1, first_answers[0]);
+    try std.testing.expectEqual(expected2, first_answers[1]);
 }
