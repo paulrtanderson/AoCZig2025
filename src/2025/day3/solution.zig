@@ -83,3 +83,35 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     try stdout.print("Answer part 2: {d}\n", .{answer2});
     try stdout.flush();
 }
+
+const embedded_input = @import("data").data_2025.day3.input;
+const embedded_example = @import("data").data_2025.day3.example;
+
+const trimmed_input = embedded_input[0 .. embedded_input.len - 1];
+const trimmed_example = embedded_example[0 .. embedded_example.len - 1];
+
+const part1_example_expected = 357;
+const part2_example_expected = 3121910778619;
+
+const part1_real_expected = 17100;
+const part2_real_expected = 170418192256861;
+
+test "part1 example" {
+    const result = part1(trimmed_example);
+    try std.testing.expectEqual(part1_example_expected, result);
+}
+
+test "part1 actual" {
+    const result = part1(trimmed_input);
+    try std.testing.expectEqual(part1_real_expected, result);
+}
+
+test "part2 example" {
+    const result = part2(trimmed_example);
+    try std.testing.expectEqual(part2_example_expected, result);
+}
+
+test "part2 actual" {
+    const result = part2(trimmed_input);
+    try std.testing.expectEqual(part2_real_expected, result);
+}

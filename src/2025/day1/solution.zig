@@ -89,21 +89,39 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     _ = impl2(inputData);
 }
 
-const test_input_data = @import("data").data_2025.day1.input;
+const embedded_input = @import("data").data_2025.day1.input;
+const embedded_example = @import("data").data_2025.day1.example;
 
-const expected1 = 969;
-const expected2 = 5887;
+const part1_example_expected = 3;
+const part2_example_expected = 6;
 
-test "impl1" {
-    const impl1_answers = impl1(test_input_data);
+const part1_real_expected = 969;
+const part2_real_expected = 5887;
 
-    try std.testing.expectEqual(expected1, impl1_answers[0]);
-    try std.testing.expectEqual(expected2, impl1_answers[1]);
+test "impl1 part 1 & part 2 example" {
+    const part1_actual, const part2_actual = impl1(embedded_example);
+
+    try std.testing.expectEqual(part1_example_expected, part1_actual);
+    try std.testing.expectEqual(part2_example_expected, part2_actual);
 }
 
-test "impl2" {
-    const impl2_answers = impl2(test_input_data);
+test "impl2 part 1 & part 2 example" {
+    const part1_actual, const part2_actual = impl2(embedded_example);
 
-    try std.testing.expectEqual(expected1, impl2_answers[0]);
-    try std.testing.expectEqual(expected2, impl2_answers[1]);
+    try std.testing.expectEqual(part1_example_expected, part1_actual);
+    try std.testing.expectEqual(part2_example_expected, part2_actual);
+}
+
+test "impl1 part 1 & part 2 real" {
+    const part1_actual, const part2_actual = impl1(embedded_input);
+
+    try std.testing.expectEqual(part1_real_expected, part1_actual);
+    try std.testing.expectEqual(part2_real_expected, part2_actual);
+}
+
+test "impl2 part 1 & part 2 real" {
+    const part1_actual, const part2_actual = impl2(embedded_input);
+
+    try std.testing.expectEqual(part1_real_expected, part1_actual);
+    try std.testing.expectEqual(part2_real_expected, part2_actual);
 }

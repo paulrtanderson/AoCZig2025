@@ -222,19 +222,40 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     try stdout.flush();
 }
 
-const inputData1 = @import("data").data_2025.day2.input;
-const trimmed_data = inputData1[0 .. inputData1.len - 1];
-const expected1 = 28146997880;
-const expected2 = 40028128307;
-test "Smart" {
-    const smart_answers = try SmartSolution.solution(trimmed_data, std.testing.allocator);
+const embedded_input = @import("data").data_2025.day2.input;
+const embedded_example = @import("data").data_2025.day2.example;
 
-    try std.testing.expectEqual(expected2, smart_answers);
+const trimmed_data = embedded_input[0 .. embedded_input.len - 1];
+const trimmed_example = embedded_example[0 .. embedded_example.len - 1];
+
+const part1_example_expected = 1227775554;
+const part2_example_expected = 4174379265;
+
+const part1_real_expected = 28146997880;
+const part2_real_expected = 40028128307;
+
+test "Smart part2 example" {
+    const smart_answer = try SmartSolution.solution(trimmed_example, std.testing.allocator);
+
+    try std.testing.expectEqual(part2_example_expected, smart_answer);
 }
 
-test "First" {
+test "Smart part2 real" {
+    const smart_answers = try SmartSolution.solution(trimmed_data, std.testing.allocator);
+
+    try std.testing.expectEqual(part2_real_expected, smart_answers);
+}
+
+test "First part1 & part2 example" {
+    const first_answers = try FirstSolution.solution(trimmed_example);
+
+    try std.testing.expectEqual(part1_example_expected, first_answers[0]);
+    try std.testing.expectEqual(part2_example_expected, first_answers[1]);
+}
+
+test "First part1 & part2 real" {
     const first_answers = try FirstSolution.solution(trimmed_data);
 
-    try std.testing.expectEqual(expected1, first_answers[0]);
-    try std.testing.expectEqual(expected2, first_answers[1]);
+    try std.testing.expectEqual(part1_real_expected, first_answers[0]);
+    try std.testing.expectEqual(part2_real_expected, first_answers[1]);
 }

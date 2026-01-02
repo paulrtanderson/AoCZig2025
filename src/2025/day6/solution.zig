@@ -23,7 +23,7 @@ fn getOperatorToken(inputdata: []const u8) struct { []const u8, usize } {
     }
 }
 
-pub fn part1(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
+fn part1(gpa: std.mem.Allocator, inputdata: []const u8) !u64 {
     var initialised = false;
 
     var it = std.mem.tokenizeScalar(u8, inputdata, '\n');
@@ -167,22 +167,28 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 const embedded_input = @import("data").data_2025.day6.input;
 const embedded_example = @import("data").data_2025.day6.example;
 
+const part1_example_expected = 4277556;
+const part2_example_expected = 3263827;
+
+const part1_real_expected = 8108520669952;
+const part2_real_expected = 11708563470209;
+
 test "part1 example" {
     const result = try part1(std.testing.allocator, embedded_example);
-    try std.testing.expectEqual(4277556, result);
+    try std.testing.expectEqual(part1_example_expected, result);
 }
 
 test "part1 actual" {
     const result = try part1(std.testing.allocator, embedded_input);
-    try std.testing.expectEqual(8108520669952, result);
+    try std.testing.expectEqual(part1_real_expected, result);
 }
 
 test "part2 example" {
     const result = part2(embedded_example);
-    try std.testing.expectEqual(3263827, result);
+    try std.testing.expectEqual(part2_example_expected, result);
 }
 
 test "part2 actual" {
     const result = part2(embedded_input);
-    try std.testing.expectEqual(11708563470209, result);
+    try std.testing.expectEqual(part2_real_expected, result);
 }
