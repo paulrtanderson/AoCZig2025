@@ -2,7 +2,7 @@ const std = @import("std");
 const utils = @import("utils");
 const readFileAlloc = utils.readFileAlloc;
 var timer: std.time.Timer = undefined;
-const filepath = "src/day4/input.txt";
+const filepath = "data/2025/day4/input.txt";
 const assert = std.debug.assert;
 
 pub fn part1(inputData: []const u8) u64 {

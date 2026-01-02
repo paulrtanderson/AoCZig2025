@@ -1,6 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const filepath = "src/day1/input.txt";
+const filepath = "data/2025/day1/input.txt";
 
 pub fn impl1(input: []const u8) struct { u32, u32 } {
     var ended_on_zero_count: u32 = 0;
@@ -89,7 +89,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     _ = impl2(inputData);
 }
 
-const test_input_data = @embedFile("input.txt");
+const test_input_data = @import("data").data_2025.day1.input;
 
 const expected1 = 969;
 const expected2 = 5887;

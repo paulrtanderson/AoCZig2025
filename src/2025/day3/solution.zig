@@ -1,6 +1,6 @@
 const std = @import("std");
 var timer: std.time.Timer = undefined;
-const filepath = "src/day3/input.txt";
+const filepath = "data/2025/day3/input.txt";
 const utils = @import("utils");
 
 pub fn part1(inputData: []const u8) u64 {

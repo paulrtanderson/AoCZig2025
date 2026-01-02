@@ -1,6 +1,6 @@
 const std = @import("std");
 var timer: std.time.Timer = undefined;
-const filepath = "src/day5/input.txt";
+const filepath = "data/2025/day5/input.txt";
 const utils = @import("utils");
 const readFileAlloc = utils.readFileAlloc;
 const Range = utils.Range;
@@ -89,29 +89,18 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
     defer allocator.free(file_data);
 
-
     const inputData = file_data[0 .. file_data.len - 1]; // remove trailing newline
     const after_io = timer.read();
 
     const answer = try part1(allocator, inputData);
     const end = timer.read();
 
-    const inputDatatest =
-        \\3-5
-        \\5-14
-        \\14-14
-        \\19-20
-        \\
-        \\
-    ;
-    _ = inputDatatest;
-
     const start2 = timer.read();
     const answer2 = try part2(allocator, inputData); // remove trailing newline
     const end2 = timer.read();
 
     var buffer: [128]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(io,&buffer);
+    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});

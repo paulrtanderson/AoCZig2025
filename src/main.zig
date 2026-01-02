@@ -1,11 +1,11 @@
 const std = @import("std");
 const aoc = @import("aoc");
-const day1 = @import("day1/solution.zig");
-const day2 = @import("day2/solution.zig");
-const day3 = @import("day3/solution.zig");
-const day4 = @import("day4/solution.zig");
-const day5 = @import("day5/solution.zig");
-const day6 = @import("day6/solution.zig");
+const day1 = @import("2025/day1/solution.zig");
+const day2 = @import("2025/day2/solution.zig");
+const day3 = @import("2025/day3/solution.zig");
+const day4 = @import("2025/day4/solution.zig");
+const day5 = @import("2025/day5/solution.zig");
+const day6 = @import("2025/day6/solution.zig");
 
 const builtin = @import("builtin");
 

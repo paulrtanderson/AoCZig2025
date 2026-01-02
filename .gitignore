@@ -7,4 +7,4 @@ zig-out/
 /docgen_tmp/
 
 input.txt
-answer[0-9].txt
+example.txt

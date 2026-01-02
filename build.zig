@@ -10,12 +10,17 @@ pub fn build(b: *std.Build) void {
     const utils_module = b.createModule(.{
         .root_source_file = b.path("src/utils.zig"),
     });
+    const data_module = b.createModule(.{
+        .root_source_file = b.path("data/data.zig"),
+    });
     const root_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+
     root_module.addImport("utils", utils_module);
+    root_module.addImport("data", data_module);
 
     // main executable
     const exe = b.addExecutable(.{

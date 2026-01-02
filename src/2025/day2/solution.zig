@@ -1,5 +1,5 @@
 const std = @import("std");
-const filepath = "src/day2/input.txt";
+const filepath = "data/2025/day2/input.txt";
 const utils = @import("utils");
 const assert = std.debug.assert;
 const Range = utils.Range;
@@ -222,7 +222,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     try stdout.flush();
 }
 
-const inputData1 = @embedFile("input.txt");
+const inputData1 = @import("data").data_2025.day2.input;
 const trimmed_data = inputData1[0 .. inputData1.len - 1];
 const expected1 = 28146997880;
 const expected2 = 40028128307;
