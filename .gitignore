@@ -8,3 +8,4 @@ zig-out/
 
 input.txt
 example.txt
+.vscode/

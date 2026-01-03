@@ -37,12 +37,13 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    const test_filters = b.option([]const []const u8, "test-filter", "Skip tests that do not match any filter") orelse &[0][]const u8{};
     // tests start from the root module as well
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
-    });
+    const exe_tests = b.addTest(.{ .root_module = exe.root_module, .filters = test_filters });
     const run_exe_tests = b.addRunArtifact(exe_tests);
     test_step.dependOn(&run_exe_tests.step);
+
+    b.step("debug-test-unit", "Debug unit tests").dependOn(&b.addInstallArtifact(exe_tests, .{ .dest_sub_path = "debug-unit-tests" }).step);
 
     // check step for ZLS
     check.dependOn(&exe.step);

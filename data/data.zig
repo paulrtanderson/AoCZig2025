@@ -23,4 +23,8 @@ pub const data_2025 = .{
         .input = @embedFile("2025/day6/input.txt"),
         .example = @embedFile("2025/day6/example.txt"),
     },
+    .day7 = .{
+        .input = @embedFile("2025/day7/input.txt"),
+        .example = @embedFile("2025/day7/example.txt"),
+    },
 };

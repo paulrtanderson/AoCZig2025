@@ -6,6 +6,7 @@ const day3 = @import("2025/day3/solution.zig");
 const day4 = @import("2025/day4/solution.zig");
 const day5 = @import("2025/day5/solution.zig");
 const day6 = @import("2025/day6/solution.zig");
+const day7 = @import("2025/day7/solution.zig");
 
 const builtin = @import("builtin");
 
@@ -43,6 +44,8 @@ pub fn main() !void {
             try day5.run(threaded.io(), gpa);
         } else if (std.mem.eql(u8, arg, "day6")) {
             try day6.run(threaded.io(), gpa);
+        } else if (std.mem.eql(u8, arg, "day7")) {
+            try day7.run(threaded.io(), gpa);
         } else {
             std.debug.print("Unknown day: {s}\n", .{arg});
         }
