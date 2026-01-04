@@ -1,5 +1,4 @@
 const std = @import("std");
-var timer: std.time.Timer = undefined;
 const assert = std.debug.assert;
 
 fn printBeamPositions(positions: []const u16) void {
@@ -13,64 +12,43 @@ fn printBeamPositions(positions: []const u16) void {
     std.debug.print("]\n", .{});
 }
 
-pub fn part1and2(inputdata: []const u8) struct { u64, u64 } {
-    var it = std.mem.tokenizeScalar(u8, inputdata, '\n');
+pub fn part1and2(input_data: []const u8) struct { u64, u64 } {
+    var it = std.mem.splitScalar(u8, input_data, '\n');
+    const first_line = it.next().?;
 
-    const buffer_size: usize = 256;
+    const columns_upper_bound = 256;
+    assert(first_line.len <= columns_upper_bound);
 
-    var buffer: [buffer_size]u16 = undefined;
-    var buffer_prev: [buffer_size]u16 = undefined;
+    var beam_timelines_buffer: [columns_upper_bound]usize = @splat(0);
+    var beam_timelines_columns = beam_timelines_buffer[0..first_line.len];
 
-    var paths_buffer: [buffer_size]usize = @splat(0);
+    beam_timelines_columns[std.mem.findScalar(u8, first_line, 'S').?] = 1;
 
-    var beam_positions_current = std.ArrayList(u16).initBuffer(&buffer);
+    _ = it.next();
 
-    const source_index = std.mem.findScalar(u8, it.next().?, 'S').?;
-
-    beam_positions_current.appendAssumeCapacity(@intCast(source_index));
-
-    var paths_slice = paths_buffer[0..it.peek().?.len];
-    paths_slice[source_index] = 1;
-
-    var count: u32 = 0;
+    var num_splits: usize = 0;
     while (it.next()) |line| {
-        var last_beam: ?u15 = null;
-        const previous_beam_slice = buffer_prev[0..beam_positions_current.items.len];
-        @memcpy(previous_beam_slice, beam_positions_current.items);
-        //printBeamPositions(previous_beam_slice);
-
-        beam_positions_current.clearRetainingCapacity();
-        var num_splits: u8 = 0;
-        for (previous_beam_slice) |i| {
-            const index: u15 = @intCast(i);
-            if (line[i] == '^') {
-                if (last_beam == null or last_beam.? + 1 != index) {
-                    beam_positions_current.appendAssumeCapacity(index - 1);
-                }
-
-                paths_slice[i - 1] += paths_slice[i];
-                paths_slice[i + 1] += paths_slice[i];
-                paths_slice[i] = 0;
-
-                beam_positions_current.appendAssumeCapacity(index + 1);
-                num_splits += 1;
-                last_beam = index + 1;
-            } else {
-                if (last_beam == null or last_beam.? != index) {
-                    beam_positions_current.appendAssumeCapacity(index);
-                    last_beam = index;
-                } else {}
+        _ = it.next();
+        for (line, 0..) |char, column| {
+            switch (char) {
+                '.' => {},
+                '^' => {
+                    if (beam_timelines_columns[column] != 0) {
+                        beam_timelines_columns[column - 1] += beam_timelines_columns[column];
+                        beam_timelines_columns[column + 1] += beam_timelines_columns[column];
+                        beam_timelines_columns[column] = 0;
+                        num_splits += 1;
+                    }
+                },
+                else => unreachable,
             }
         }
-        count += num_splits;
     }
-
     var num_timelines: usize = 0;
-    for (paths_slice) |p| {
-        num_timelines += p;
+    for (beam_timelines_columns) |beam_timelines_column| {
+        num_timelines += beam_timelines_column;
     }
-
-    return .{ count, num_timelines };
+    return .{ num_splits, num_timelines };
 }
 
 fn recursiveCount(lines: []const []const u8, column: usize, row: usize, memo: *std.AutoHashMap(usize, u64)) u64 {
@@ -94,6 +72,103 @@ fn recursiveCount(lines: []const []const u8, column: usize, row: usize, memo: *s
     }
 }
 
+pub fn benchmark1and2(input_data: []const u8) !void {
+    const runs = 10000;
+
+    var r: std.Io.Reader = .fixed(input_data);
+    //warmup
+    for (0..runs) |_| {
+        r = .fixed(input_data);
+        const part1, const part2 = part1and2(input_data);
+        std.mem.doNotOptimizeAway(part1);
+        std.mem.doNotOptimizeAway(part2);
+        assert(part1 == part1_real_expected);
+        assert(part2 == part2_real_expected);
+    }
+
+    var run_times: [runs]u64 = @splat(0);
+
+    for (0..runs) |i| {
+        r = .fixed(input_data);
+        var timer = std.time.Timer.start() catch unreachable;
+        const part1, const part2 = part1and2(input_data);
+        const time = timer.read();
+        run_times[i] = time;
+        std.mem.doNotOptimizeAway(part1);
+        std.mem.doNotOptimizeAway(part2);
+    }
+
+    // mean and stddev
+    var total: f64 = 0;
+    for (run_times) |time| {
+        total += @floatFromInt(time);
+    }
+    const mean = total / runs;
+
+    var variance_total: f64 = 0;
+    for (run_times) |time| {
+        const ftime: f64 = @floatFromInt(time);
+        const diff = ftime - mean;
+        variance_total += diff * diff;
+    }
+    const variance = variance_total / runs;
+    const stddev = std.math.sqrt(variance);
+    const min_index, const max_index = std.mem.findMinMax(u64, &run_times);
+    const min = run_times[min_index];
+    const max = run_times[max_index];
+
+    std.mem.sort(u64, &run_times, {}, std.sort.asc(u64));
+
+    const median: f64 = if (runs % 2 == 0)
+        (@as(f64, @floatFromInt(run_times[runs / 2 - 1])) + @as(f64, @floatFromInt(run_times[runs / 2]))) / 2.0
+    else
+        @floatFromInt(run_times[runs / 2]);
+    std.debug.print("Benchmark Part 1 and 2 over {d} runs:\n", .{runs});
+    std.debug.print("Mean time: {d:.2} ns\n", .{mean});
+    std.debug.print("Median time: {d:.2} ns\n", .{median});
+    std.debug.print("Standard Deviation: {d:.2} ns\n", .{stddev});
+    std.debug.print("Min time: {d} ns at run {d}\n", .{ min, min_index });
+    std.debug.print("Max time: {d} ns at run {d}\n", .{ max, max_index });
+}
+
+pub fn readerVersion(r: *std.Io.Reader) !struct { u64, u64 } {
+    const first_line = try r.takeDelimiter('\n') orelse unreachable;
+
+    const columns_upper_bound = 256;
+    assert(first_line.len <= columns_upper_bound);
+
+    var beam_timelines_buffer: [columns_upper_bound]usize = @splat(0);
+    var beam_timelines_columns = beam_timelines_buffer[0..first_line.len];
+
+    beam_timelines_columns[std.mem.findScalar(u8, first_line, 'S').?] = 1;
+
+    _ = r.discardDelimiterInclusive('\n') catch {};
+
+    var num_splits: usize = 0;
+    while (try r.takeDelimiter('\n')) |line| {
+        _ = r.discardDelimiterInclusive('\n') catch {};
+        for (line, 0..) |char, column| {
+            switch (char) {
+                '.' => {},
+                '^' => {
+                    if (beam_timelines_columns[column] != 0) {
+                        beam_timelines_columns[column - 1] += beam_timelines_columns[column];
+                        beam_timelines_columns[column + 1] += beam_timelines_columns[column];
+                        beam_timelines_columns[column] = 0;
+                        num_splits += 1;
+                    }
+                },
+                else => unreachable,
+            }
+        }
+    }
+    var num_timelines: usize = 0;
+    for (beam_timelines_columns) |beam_timelines_column| {
+        num_timelines += beam_timelines_column;
+    }
+    return .{ num_splits, num_timelines };
+}
+
 pub fn part2recursive(allocator: std.mem.Allocator, inputdata: []const u8) !u64 {
     var it = std.mem.tokenizeScalar(u8, inputdata, '\n');
     const first_line = it.next().?;
@@ -114,7 +189,7 @@ pub fn part2recursive(allocator: std.mem.Allocator, inputdata: []const u8) !u64 
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
-    timer = std.time.Timer.start() catch unreachable;
+    var timer = std.time.Timer.start() catch unreachable;
 
     const start = timer.read();
 
@@ -134,11 +209,13 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const answer2recursive = try part2recursive(allocator, inputData);
     const end2 = timer.read();
 
-    std.debug.print("answer: {d}, answer2: {d}\n", .{ answer, answer2 });
+    assert(answer2 == answer2recursive);
 
     var buffer: [128]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
     const stdout = &stdout_writer.interface;
+
+    try benchmark1and2(inputData);
 
     try stdout.print("Elapsed time (file IO): {d} ns\n", .{after_io - start});
     try stdout.print("Elapsed time (solution): {d} ns\n", .{end - after_io});
@@ -159,13 +236,15 @@ const part1_real_expected = 1573;
 const part2_real_expected = 15093663987272;
 
 test "part1 example" {
-    const result, _ = part1and2(embedded_example);
-    try std.testing.expectEqual(part1_example_expected, result);
+    const part1, const part2 = part1and2(embedded_example);
+    try std.testing.expectEqual(part1_example_expected, part1);
+    try std.testing.expectEqual(part2_example_expected, part2);
 }
 
 test "part1 actual" {
-    const result, _ = part1and2(embedded_input);
-    try std.testing.expectEqual(part1_real_expected, result);
+    const part1, const part2 = part1and2(embedded_input);
+    try std.testing.expectEqual(part1_real_expected, part1);
+    try std.testing.expectEqual(part2_real_expected, part2);
 }
 
 test "part2 example" {
@@ -174,7 +253,6 @@ test "part2 example" {
 }
 
 test "part2 actual" {
-    if (true) return error.SkipZigTest;
     const result = try part2recursive(std.testing.allocator, embedded_input);
     try std.testing.expectEqual(part2_real_expected, result);
 }
