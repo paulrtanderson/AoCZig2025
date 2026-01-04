@@ -10,9 +10,8 @@ const day7 = @import("2025/day7/solution.zig");
 
 const builtin = @import("builtin");
 
-var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-
 pub fn main() !void {
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
     const gpa, const is_debug = switch (builtin.mode) {
         .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
         .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
@@ -25,7 +24,12 @@ pub fn main() !void {
         std.debug.assert(debug_allocator.deinit() == .ok);
     };
 
-    var args_iter = try std.process.argsWithAllocator(gpa);
+    var arena: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
+    defer if (!is_debug) arena.deinit();
+
+    const allocator = if (is_debug) gpa else arena.allocator();
+
+    var args_iter = try std.process.argsWithAllocator(allocator);
     defer args_iter.deinit();
 
     // Skip argv[0]
@@ -33,19 +37,19 @@ pub fn main() !void {
 
     if (args_iter.next()) |arg| {
         if (std.mem.eql(u8, arg, "day1")) {
-            try day1.run(threaded.io(), gpa);
+            try day1.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day2")) {
-            try day2.run(threaded.io(), gpa);
+            try day2.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day3")) {
-            try day3.run(threaded.io(), gpa);
+            try day3.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day4")) {
-            try day4.run(threaded.io(), gpa);
+            try day4.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day5")) {
-            try day5.run(threaded.io(), gpa);
+            try day5.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day6")) {
-            try day6.run(threaded.io(), gpa);
+            try day6.run(threaded.io(), allocator);
         } else if (std.mem.eql(u8, arg, "day7")) {
-            try day7.run(threaded.io(), gpa);
+            try day7.run(threaded.io(), allocator);
         } else {
             std.debug.print("Unknown day: {s}\n", .{arg});
         }
