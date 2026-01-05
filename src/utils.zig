@@ -22,3 +22,79 @@ pub fn getRange(range_string: []const u8) !Range {
     const myRange = Range{ .start = start, .end = end };
     return myRange;
 }
+
+const Stats = struct {
+    mean: f64,
+    median: f64,
+    stddev: f64,
+    min_index: usize,
+    max_index: usize,
+};
+
+fn calculateStats(times: []u64) Stats {
+    var total: f64 = 0;
+    for (times) |time| {
+        total += @floatFromInt(time);
+    }
+    const flen: f64 = @floatFromInt(times.len);
+    const mean = total / flen;
+
+    var variance_total: f64 = 0;
+    for (times) |time| {
+        const ftime: f64 = @floatFromInt(time);
+        const diff = ftime - mean;
+        variance_total += diff * diff;
+    }
+    const variance = variance_total / flen;
+    const stddev = std.math.sqrt(variance);
+
+    const min_index, const max_index = std.mem.findMinMax(u64, times);
+
+    std.mem.sort(u64, times, {}, std.sort.asc(u64));
+
+    const median: f64 = if (times.len % 2 == 0)
+        (@as(f64, @floatFromInt(times[times.len / 2 - 1])) + @as(f64, @floatFromInt(times[times.len / 2]))) / 2.0
+    else
+        @floatFromInt(times[times.len / 2]);
+
+    return .{ .mean = mean, .median = median, .stddev = stddev, .min_index = min_index, .max_index = max_index };
+}
+
+pub fn printStats(times: []u64, stdout: *std.Io.Writer) !void {
+    const stats = calculateStats(times);
+    try stdout.print("Mean time: {d:.2} ns\n", .{stats.mean});
+    try stdout.print("Median time: {d:.2} ns\n", .{stats.median});
+    try stdout.print("Standard Deviation: {d:.2} ns\n", .{stats.stddev});
+    try stdout.print("Min time: {d} ns at run {d}\n", .{ times[0], stats.min_index });
+    try stdout.print("Max time: {d} ns at run {d}\n", .{ times[times.len - 1], stats.max_index });
+}
+
+pub fn benchmarkGeneric(
+    context: anytype,
+    comptime runFn: *const fn (@TypeOf(context)) anyerror!u64,
+    label: []const u8,
+    stdout: *std.Io.Writer,
+    runs: comptime_int,
+) !void {
+    // Warmup
+    const warmup_runs = runs / 10;
+    for (0..warmup_runs) |_| {
+        const res = runFn(context);
+        std.mem.doNotOptimizeAway(res);
+    }
+
+    // 3. Benchmarking Logic
+    var run_times: [runs]u64 = undefined;
+
+    for (0..runs) |i| {
+        var timer = try std.time.Timer.start();
+        const res = try runFn(context);
+        run_times[i] = timer.read();
+        std.mem.doNotOptimizeAway(res);
+    }
+
+    // ... stats printing ...
+    try stdout.print("\n=======================\n", .{});
+    try stdout.print("Benchmark results for {s}:\n", .{label});
+    try printStats(&run_times, stdout);
+}

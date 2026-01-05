@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const utils = @import("utils");
 
 fn printBeamPositions(positions: []const u16) void {
     std.debug.print("Beam positions: [", .{});
@@ -26,7 +27,7 @@ pub fn part1and2(r: *std.Io.Reader) !struct { u64, u64 } {
 
     var num_splits: usize = 0;
     while (try r.takeDelimiter('\n')) |line| {
-        _ = try r.discardDelimiterInclusive('\n');
+        _ = r.discardDelimiterInclusive('\n') catch {};
         for (line, 0..) |char, column| {
             switch (char) {
                 '.' => {},
@@ -85,128 +86,67 @@ pub fn part2recursive(allocator: std.mem.Allocator, inputdata: []const u8) !u64 
     return recursiveCount(inputdata, stride, num_rows, start_index, &memo);
 }
 
-const Stats = struct {
-    mean: f64,
-    median: f64,
-    stddev: f64,
-    min_index: usize,
-    max_index: usize,
+const IterativeArgs = struct {
+    data: []const u8,
 };
-
-fn calculateStats(times: []u64) Stats {
-    var total: f64 = 0;
-    for (times) |time| {
-        total += @floatFromInt(time);
-    }
-    const flen: f64 = @floatFromInt(times.len);
-    const mean = total / flen;
-
-    var variance_total: f64 = 0;
-    for (times) |time| {
-        const ftime: f64 = @floatFromInt(time);
-        const diff = ftime - mean;
-        variance_total += diff * diff;
-    }
-    const variance = variance_total / flen;
-    const stddev = std.math.sqrt(variance);
-
-    const min_index, const max_index = std.mem.findMinMax(u64, times);
-
-    std.mem.sort(u64, times, {}, std.sort.asc(u64));
-
-    const median: f64 = if (times.len % 2 == 0)
-        (@as(f64, @floatFromInt(times[times.len / 2 - 1])) + @as(f64, @floatFromInt(times[times.len / 2]))) / 2.0
-    else
-        @floatFromInt(times[times.len / 2]);
-
-    return .{ .mean = mean, .median = median, .stddev = stddev, .min_index = min_index, .max_index = max_index };
+fn timeIterative(context: IterativeArgs) !u64 {
+    var reader: std.Io.Reader = .fixed(context.data);
+    var timer: std.time.Timer = try .start();
+    const res = try part1and2(&reader);
+    const elapsed = timer.read();
+    std.mem.doNotOptimizeAway(res);
+    return elapsed;
 }
 
-pub fn printStats(times: []u64, stdout: *std.Io.Writer) !void {
-    const stats = calculateStats(times);
-    try stdout.print("Mean time: {d:.2} ns\n", .{stats.mean});
-    try stdout.print("Median time: {d:.2} ns\n", .{stats.median});
-    try stdout.print("Standard Deviation: {d:.2} ns\n", .{stats.stddev});
-    try stdout.print("Min time: {d} ns at run {d}\n", .{ times[0], stats.min_index });
-    try stdout.print("Max time: {d} ns at run {d}\n", .{ times[times.len - 1], stats.max_index });
+const RecursiveArgs = struct {
+    data: []const u8,
+    allocator: std.mem.Allocator,
+};
+fn timeRecursive(context: RecursiveArgs) !u64 {
+    var timer: std.time.Timer = try .start();
+    const res = try part2recursive(context.allocator, context.data);
+    const elapsed = timer.read();
+    std.mem.doNotOptimizeAway(res);
+    return elapsed;
 }
 
-pub fn benchmark(input_data: []const u8, stdout: *std.Io.Writer) !void {
+pub fn benchmark(allocator: std.mem.Allocator, io: std.Io, filepath: []const u8, stdout: *std.Io.Writer) !void {
     const runs = 10000;
-    const warmup_runs = 1000;
-    var r: std.Io.Reader = .fixed(input_data);
-    //warmup
-    for (0..warmup_runs) |_| {
-        r = .fixed(input_data);
-        const part1, const part2 = try part1and2(&r);
-        std.mem.doNotOptimizeAway(part1);
-        std.mem.doNotOptimizeAway(part2);
-    }
 
-    var run_times: [runs]u64 = @splat(0);
+    const dir = std.Io.Dir.cwd();
+    const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(file_data);
+    const input_data = file_data[0 .. file_data.len - 1];
 
-    for (0..runs) |i| {
-        r = .fixed(input_data);
-        var timer = std.time.Timer.start() catch unreachable;
-        const part1, const part2 = try part1and2(&r);
-        const time = timer.read();
-        run_times[i] = time;
-        std.mem.doNotOptimizeAway(part1);
-        std.mem.doNotOptimizeAway(part2);
-    }
+    try utils.benchmarkGeneric(IterativeArgs{ .data = input_data }, timeIterative, "Part 1 & 2 Iterative", stdout, runs);
 
-    try stdout.print("\n==============================\n", .{});
-    try stdout.print("Part 1 & 2 Benchmark:\n", .{});
-    try stdout.print("==============================\n", .{});
-    try printStats(&run_times, stdout);
+    try stdout.flush();
 
-    var buffer: [65536]u8 = undefined;
-    var fba: std.heap.FixedBufferAllocator = .init(&buffer);
-    const allocator = fba.allocator();
-
-    // warmup
-    for (0..warmup_runs) |_| {
-        fba.reset();
-        const result = try part2recursive(allocator, input_data);
-        std.mem.doNotOptimizeAway(result);
-    }
-
-    for (0..runs) |i| {
-        fba.reset();
-        var timer = std.time.Timer.start() catch unreachable;
-        const result = try part2recursive(allocator, input_data);
-        const time = timer.read();
-        std.mem.doNotOptimizeAway(result);
-        run_times[i] = time;
-    }
-    try stdout.print("\n==============================\n", .{});
-    try stdout.print("Part 2 Recursive Benchmark:\n", .{});
-    try stdout.print("==============================\n", .{});
-
-    try printStats(&run_times, stdout);
+    try utils.benchmarkGeneric(RecursiveArgs{ .data = input_data, .allocator = allocator }, timeRecursive, "Part 2 Recursive", stdout, runs);
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
     const filepath = "data/2025/day7/input.txt";
     const dir = std.Io.Dir.cwd();
-    const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
-    defer allocator.free(file_data);
-    const input_data = file_data[0 .. file_data.len - 1]; // remove trailing newline
-    var r: std.Io.Reader = .fixed(input_data);
 
-    const answer, const answer2 = try part1and2(&r);
+    const answer1, const answer2 = blk: {
+        const file = try dir.openFile(io, filepath, .{});
+        defer file.close(io);
+        var file_buffer: [1000]u8 = undefined;
+        var reader = file.reader(io, &file_buffer);
+        break :blk try part1and2(&reader.interface);
+    };
 
-    var buffer: [128]u8 = undefined;
+    var buffer: [1024]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
-
     const stdout = &stdout_writer.interface;
 
-    try stdout.print("Answer part 1: {d}\n", .{answer});
+    try stdout.print("Answer part 1: {d}\n", .{answer1});
     try stdout.print("Answer part 2: {d}\n", .{answer2});
 
     try stdout.flush();
 
-    try benchmark(input_data, stdout);
+    try benchmark(allocator, io, filepath, stdout);
 
     try stdout.flush();
 }
@@ -219,26 +159,28 @@ const part2_example_expected = 40;
 const part1_real_expected = 1573;
 const part2_real_expected = 15093663987272;
 
-test "part 1 & 2 example" {
-    var r: std.Io.Reader = .fixed(embedded_example);
+fn checkIterative(data: []const u8, expected: struct { u64, u64 }) !void {
+    var r: std.Io.Reader = .fixed(data);
     const part1, const part2 = try part1and2(&r);
-    try std.testing.expectEqual(part1_example_expected, part1);
-    try std.testing.expectEqual(part2_example_expected, part2);
+    const part1_expected, const part2_expected = expected;
+    try std.testing.expectEqual(part1_expected, part1);
+    try std.testing.expectEqual(part2_expected, part2);
 }
 
-test "part 1 & 2 actual" {
-    var r: std.Io.Reader = .fixed(embedded_input);
-    const part1, const part2 = try part1and2(&r);
-    try std.testing.expectEqual(part1_real_expected, part1);
-    try std.testing.expectEqual(part2_real_expected, part2);
+fn checkRecursive(data: []const u8, expected: u64) !void {
+    const result = try part2recursive(std.testing.allocator, data);
+    try std.testing.expectEqual(expected, result);
 }
 
-test "part2 recursive example" {
-    const result = try part2recursive(std.testing.allocator, embedded_example);
-    try std.testing.expectEqual(part2_example_expected, result);
+const example_expected = .{ part1_example_expected, part2_example_expected };
+const real_expected = .{ part1_real_expected, part2_real_expected };
+
+test "part 1 & 2 iterative" {
+    try checkIterative(embedded_example, example_expected);
+    try checkIterative(embedded_input, real_expected);
 }
 
-test "part2 recursive actual" {
-    const result = try part2recursive(std.testing.allocator, embedded_input);
-    try std.testing.expectEqual(part2_real_expected, result);
+test "part2 recursive" {
+    try checkRecursive(embedded_example, part2_example_expected);
+    try checkRecursive(embedded_input, part2_real_expected);
 }
