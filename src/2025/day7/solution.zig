@@ -14,7 +14,7 @@ fn printBeamPositions(positions: []const u16) void {
 
 pub fn part1and2(r: *std.Io.Reader) !struct { u64, u64 } {
     const first_line = try r.takeDelimiter('\n') orelse unreachable;
-    _ = r.discardDelimiterInclusive('\n') catch {};
+    _ = try r.discardDelimiterInclusive('\n');
 
     const columns_upper_bound = 256;
     assert(first_line.len <= columns_upper_bound);
@@ -26,7 +26,7 @@ pub fn part1and2(r: *std.Io.Reader) !struct { u64, u64 } {
 
     var num_splits: usize = 0;
     while (try r.takeDelimiter('\n')) |line| {
-        _ = r.discardDelimiterInclusive('\n') catch {};
+        _ = try r.discardDelimiterInclusive('\n');
         for (line, 0..) |char, column| {
             switch (char) {
                 '.' => {},
@@ -198,7 +198,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     var buffer: [128]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
-    
+
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Answer part 1: {d}\n", .{answer});
