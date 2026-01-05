@@ -63,7 +63,7 @@ fn recursiveCount(inputdata: []const u8, stride: usize, num_rows: usize, index: 
         const left = recursiveCount(inputdata, stride, num_rows, next_row_index - 1, memo);
         const right = recursiveCount(inputdata, stride, num_rows, next_row_index + 1, memo);
         const total = left + right;
-        memo.put(index, total) catch {};
+        memo.putAssumeCapacity(index, total);
         return total;
     } else {
         return recursiveCount(inputdata, stride, num_rows, index + stride, memo);
@@ -79,13 +79,21 @@ pub fn part2recursive(allocator: std.mem.Allocator, inputdata: []const u8) !u64 
     const start_index = stride + start_column; // start on second row
 
     var memo = std.AutoHashMap(usize, u64).init(allocator);
-    try memo.ensureTotalCapacity(2000);
+    try memo.ensureTotalCapacity(1000);
     defer memo.deinit();
 
     return recursiveCount(inputdata, stride, num_rows, start_index, &memo);
 }
 
-fn calculateStats(times: []u64) struct { mean: f64, median: f64, stddev: f64, min_index: usize, max_index: usize } {
+const Stats = struct {
+    mean: f64,
+    median: f64,
+    stddev: f64,
+    min_index: usize,
+    max_index: usize,
+};
+
+fn calculateStats(times: []u64) Stats {
     var total: f64 = 0;
     for (times) |time| {
         total += @floatFromInt(time);
@@ -114,11 +122,21 @@ fn calculateStats(times: []u64) struct { mean: f64, median: f64, stddev: f64, mi
     return .{ .mean = mean, .median = median, .stddev = stddev, .min_index = min_index, .max_index = max_index };
 }
 
+pub fn printStats(times: []u64, stdout: *std.Io.Writer) !void {
+    const stats = calculateStats(times);
+    try stdout.print("Mean time: {d:.2} ns\n", .{stats.mean});
+    try stdout.print("Median time: {d:.2} ns\n", .{stats.median});
+    try stdout.print("Standard Deviation: {d:.2} ns\n", .{stats.stddev});
+    try stdout.print("Min time: {d} ns at run {d}\n", .{ times[0], stats.min_index });
+    try stdout.print("Max time: {d} ns at run {d}\n", .{ times[times.len - 1], stats.max_index });
+}
+
 pub fn benchmark(input_data: []const u8, stdout: *std.Io.Writer) !void {
     const runs = 10000;
+    const warmup_runs = 1000;
     var r: std.Io.Reader = .fixed(input_data);
     //warmup
-    for (0..runs) |_| {
+    for (0..warmup_runs) |_| {
         r = .fixed(input_data);
         const part1, const part2 = try part1and2(&r);
         std.mem.doNotOptimizeAway(part1);
@@ -137,13 +155,35 @@ pub fn benchmark(input_data: []const u8, stdout: *std.Io.Writer) !void {
         std.mem.doNotOptimizeAway(part2);
     }
 
-    const stats = calculateStats(&run_times);
-    try stdout.print("Benchmark Part 1 and 2 over {d} runs:\n", .{runs});
-    try stdout.print("Mean time: {d:.2} ns\n", .{stats.mean});
-    try stdout.print("Median time: {d:.2} ns\n", .{stats.median});
-    try stdout.print("Standard Deviation: {d:.2} ns\n", .{stats.stddev});
-    try stdout.print("Min time: {d} ns at run {d}\n", .{ run_times[0], stats.min_index });
-    try stdout.print("Max time: {d} ns at run {d}\n", .{ run_times[runs - 1], stats.max_index });
+    try stdout.print("\n==============================\n", .{});
+    try stdout.print("Part 1 & 2 Benchmark:\n", .{});
+    try stdout.print("==============================\n", .{});
+    try printStats(&run_times, stdout);
+
+    var buffer: [65536]u8 = undefined;
+    var fba: std.heap.FixedBufferAllocator = .init(&buffer);
+    const allocator = fba.allocator();
+
+    // warmup
+    for (0..warmup_runs) |_| {
+        fba.reset();
+        const result = try part2recursive(allocator, input_data);
+        std.mem.doNotOptimizeAway(result);
+    }
+
+    for (0..runs) |i| {
+        fba.reset();
+        var timer = std.time.Timer.start() catch unreachable;
+        const result = try part2recursive(allocator, input_data);
+        const time = timer.read();
+        std.mem.doNotOptimizeAway(result);
+        run_times[i] = time;
+    }
+    try stdout.print("\n==============================\n", .{});
+    try stdout.print("Part 2 Recursive Benchmark:\n", .{});
+    try stdout.print("==============================\n", .{});
+
+    try printStats(&run_times, stdout);
 }
 
 pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
@@ -158,6 +198,7 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
 
     var buffer: [128]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
+    
     const stdout = &stdout_writer.interface;
 
     try stdout.print("Answer part 1: {d}\n", .{answer});
