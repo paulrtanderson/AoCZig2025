@@ -130,13 +130,11 @@ pub fn benchmark(allocator: std.mem.Allocator, backing_allocator: std.mem.Alloca
 pub fn run(io: std.Io, stdout: *std.Io.Writer, filepath: []const u8) !void {
     const dir = std.Io.Dir.cwd();
 
-    const answer1, const answer2 = blk: {
-        const file = try dir.openFile(io, filepath, .{});
-        defer file.close(io);
-        var file_buffer: [1000]u8 = undefined;
-        var reader = file.reader(io, &file_buffer);
-        break :blk try part1and2(&reader.interface);
-    };
+    const file = try dir.openFile(io, filepath, .{});
+    defer file.close(io);
+    var file_buffer: [1000]u8 = undefined;
+    var reader = file.reader(io, &file_buffer);
+    const answer1, const answer2 = try part1and2(&reader.interface);
 
     try stdout.print("Answer part 1: {d}\n", .{answer1});
     try stdout.print("Answer part 2: {d}\n", .{answer2});
