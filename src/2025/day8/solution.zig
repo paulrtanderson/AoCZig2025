@@ -5,9 +5,11 @@ const sort = std.sort;
 const assert = std.debug.assert;
 const data = @import("data").data_2025.day8;
 const Point3 = struct {
-    x: i32,
-    y: i32,
-    z: i32,
+    pub const Scalar = i32;
+
+    x: Scalar,
+    y: Scalar,
+    z: Scalar,
 
     pub fn distanceTo(self: Point3, other: Point3) f64 {
         const dx = @as(f64, @floatFromInt(self.x - other.x));
@@ -16,29 +18,47 @@ const Point3 = struct {
 
         return std.math.sqrt(dx * dx + dy * dy + dz * dz);
     }
+
+    pub fn squaredDistance(a: Point3, b: Point3) f64 {
+        const dx: f64 = @floatFromInt(a.x - b.x);
+        const dy: f64 = @floatFromInt(a.y - b.y);
+        const dz: f64 = @floatFromInt(a.z - b.z);
+
+        return dx * dx + dy * dy + dz * dz;
+    }
 };
 
-fn part1(allocator: std.mem.Allocator, r: *std.Io.Reader, num_connections: usize) !u64 {
-    var coord_list = try std.ArrayList(Point3).initCapacity(allocator, 2000);
-    defer coord_list.deinit(allocator);
-    while (try r.takeDelimiter('\n')) |line| {
-        var it = std.mem.tokenizeScalar(u8, line, ',');
-        var coords: [3]i32 = undefined;
-        var i: usize = 0;
-        while (it.next()) |token| : (i += 1) {
-            assert(i < 3);
-            const coord = try std.fmt.parseInt(i32, token, 10);
-            coords[i] = coord;
-        }
-        try coord_list.append(allocator, Point3{
-            .x = coords[0],
-            .y = coords[1],
-            .z = coords[2],
-        });
+fn parsePoint(line: []const u8) !Point3 {
+    var it = std.mem.tokenizeScalar(u8, line, ',');
+    var coords: [3]Point3.Scalar = undefined;
+    var i: usize = 0;
+    while (it.next()) |token| : (i += 1) {
+        assert(i < 3);
+        const coord = try std.fmt.parseInt(Point3.Scalar, token, 10);
+        coords[i] = coord;
     }
+    return Point3{
+        .x = coords[0],
+        .y = coords[1],
+        .z = coords[2],
+    };
+}
+
+fn readAllPoints(allocator: std.mem.Allocator, r: *std.Io.Reader) ![]Point3 {
+    var coord_list = try std.ArrayList(Point3).initCapacity(allocator, 1000);
+    errdefer coord_list.deinit(allocator);
+    while (try r.takeDelimiter('\n')) |line| {
+        try coord_list.append(allocator, try parsePoint(line));
+    }
+    return coord_list.toOwnedSlice(allocator);
+}
+
+fn part1(allocator: std.mem.Allocator, r: *std.Io.Reader, num_connections: usize) !u64 {
+    var coord_list = try readAllPoints(allocator, r);
+    defer allocator.free(coord_list);
     // upper triangular distance matrix
 
-    const n = coord_list.items.len;
+    const n = coord_list.len;
     const matrix_size = n * n;
 
     var distances_matrix = try allocator.alloc(f64, matrix_size);
@@ -47,8 +67,8 @@ fn part1(allocator: std.mem.Allocator, r: *std.Io.Reader, num_connections: usize
     @memset(distances_matrix, math.floatMax(f64));
 
     var index: usize = 0;
-    for (coord_list.items, 0..) |point_a, i| {
-        for (coord_list.items, 0..) |point_b, j| {
+    for (coord_list, 0..) |point_a, i| {
+        for (coord_list, 0..) |point_b, j| {
             defer index += 1;
             if (i >= j) continue;
             const dist = point_a.distanceTo(point_b);
@@ -63,9 +83,9 @@ fn part1(allocator: std.mem.Allocator, r: *std.Io.Reader, num_connections: usize
     defer allocator.free(workspace);
     getLowestKIndices(f64, distances_matrix, sorted_distances_indexes, workspace);
 
-    //printClosestPoints(coord_list.items, sorted_distances_indexes, n);
+    //printClosestPoints(coord_list, sorted_distances_indexes, n);
 
-    return try getSubGraphLengths(allocator, sorted_distances_indexes, n, coord_list.items);
+    return try getSubGraphLengths(allocator, sorted_distances_indexes, n, coord_list);
 }
 
 fn findParent(
@@ -297,21 +317,190 @@ fn siftDown(a: usize, target: usize, b: usize, context: anytype) void {
     }
 }
 
-pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
-    const filepath = data.input_path_str;
+fn part2(gpa: std.mem.Allocator, r: *std.Io.Reader) !u64 {
+    // We need to find a minimum bottle neck spanning tree
+    // since this is a complete graph, finding the MST via Prim's algorithm is just as efficient as Camerini's algorithm for MBSTs
+    // in fact prims algorithm is optimal for complete graphs
 
+    // allocated vertices
+    const coords = try readAllPoints(gpa, r);
+    defer gpa.free(coords);
+    const n = coords.len;
+
+    if (n <= 1) return 0;
+
+    var distances_to_tree = try gpa.alloc(f64, n);
+    defer gpa.free(distances_to_tree);
+    var sources_x_value = try gpa.alloc(Point3.Scalar, n);
+    defer gpa.free(sources_x_value);
+    @memset(distances_to_tree, math.floatMax(f64));
+    @memset(sources_x_value, coords[0].x);
+
+    var max_edge: f64 = 0.0;
+    var bottleneck_a_x: Point3.Scalar = 0;
+    var bottleneck_b_x: Point3.Scalar = 0;
+
+    // prim's algorithm
+    distances_to_tree[0] = 0.0;
+    for (1..n) |i| {
+        const last_point = coords[i - 1];
+        var best_distance: f64 = math.floatMax(f64);
+        var best_distance_index: usize = 0;
+        for (i..n) |j| {
+            const dist = Point3.squaredDistance(last_point, coords[j]);
+            if (dist < distances_to_tree[j]) {
+                distances_to_tree[j] = dist;
+                sources_x_value[j] = last_point.x;
+            }
+            const dist_to_tree = distances_to_tree[j];
+            if (dist_to_tree < best_distance) {
+                best_distance = dist_to_tree;
+                best_distance_index = j;
+            }
+        }
+
+        if (best_distance > max_edge) {
+            max_edge = best_distance;
+            bottleneck_a_x = sources_x_value[best_distance_index];
+            bottleneck_b_x = coords[best_distance_index].x;
+        }
+        std.mem.swap(Point3, &coords[best_distance_index], &coords[i]);
+        std.mem.swap(f64, &distances_to_tree[best_distance_index], &distances_to_tree[i]);
+        std.mem.swap(Point3.Scalar, &sources_x_value[best_distance_index], &sources_x_value[i]);
+    }
+    const product_of_xs = bottleneck_a_x * bottleneck_b_x;
+    return @intCast(product_of_xs);
+}
+
+fn timePart1(context: []const u8, allocator: std.mem.Allocator) !u64 {
+    var reader: std.Io.Reader = .fixed(context);
+    var timer: std.time.Timer = try .start();
+    const res = try part1(allocator, &reader, 1000);
+    const elapsed = timer.read();
+    std.mem.doNotOptimizeAway(res);
+    return elapsed;
+}
+
+fn timePart2(context: []const u8, allocator: std.mem.Allocator) !u64 {
+    var reader: std.Io.Reader = .fixed(context);
+    var timer: std.time.Timer = try .start();
+    const res = try part2(allocator, &reader);
+    const elapsed = timer.read();
+    std.mem.doNotOptimizeAway(res);
+    return elapsed;
+}
+
+const utils = @import("utils");
+pub fn benchmark(allocator: std.mem.Allocator, backing_allocator: std.mem.Allocator, io: std.Io, filepath: []const u8, stdout: *std.Io.Writer, runs: u32) !void {
+    const dir = std.Io.Dir.cwd();
+    const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
+    defer allocator.free(file_data);
+    const input_data = file_data[0 .. file_data.len - 1];
+
+    try utils.benchmarkGeneric(allocator, backing_allocator, input_data, timePart1, "Part 1", stdout, runs);
+    try stdout.flush();
+    try utils.benchmarkGeneric(allocator, backing_allocator, input_data, timePart2, "Part 2", stdout, runs);
+    try stdout.flush();
+    std.debug.print("finished the benchmark\n", .{});
+}
+
+pub fn run(io: std.Io, allocator: std.mem.Allocator, out: *std.Io.Writer, filepath: []const u8, connections: usize) !void {
     const dir = std.Io.Dir.cwd();
     const file = try dir.openFile(io, filepath, .{});
     defer file.close(io);
-    var file_buffer: [2000]u8 = undefined;
+    var file_buffer: [1000]u8 = undefined;
     var file_reader = file.reader(io, &file_buffer);
     const reader = &file_reader.interface;
-    const answer1 = try part1(allocator, reader, 1000);
+    const answer1 = try part1(allocator, reader, connections);
 
-    var buffer: [1024]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
-    const stdout = &stdout_writer.interface;
+    try file_reader.seekTo(0);
+    const answer2 = try part2(allocator, reader);
 
-    try stdout.print("Answer part 1: {d}\n", .{answer1});
-    try stdout.flush();
+    try out.print("Answer part 1: {d}\n", .{answer1});
+    try out.print("Answer part 2: {d}\n", .{answer2});
+    try out.flush();
+}
+
+const testing = std.testing;
+const data_day_8 = @import("data").data_2025.day8;
+const embedded_input = data_day_8.input;
+const embedded_example = data_day_8.example;
+
+const part1_input_embedded = Part1Input{
+    .input = embedded_input,
+    .connections = 1000,
+};
+
+const part1_example_input = Part1Input{
+    .input = embedded_example,
+    .connections = 10,
+};
+
+const part1_example_expected = 40;
+const part2_example_expected = 25272;
+
+const part1_real_expected = 163548;
+const part2_real_expected = 772452514;
+
+const Part1Input = struct {
+    input: []const u8,
+    connections: usize,
+};
+
+fn checkPart1(input: Part1Input, expected: usize) !void {
+    const input_data = input.input;
+    const connections = input.connections;
+    var reader: std.Io.Reader = .fixed(input_data);
+    const result = try part1(testing.allocator, &reader, connections);
+    try testing.expectEqual(expected, result);
+}
+
+test "day 8 part 1" {
+    try checkPart1(part1_example_input, part1_example_expected);
+    try checkPart1(part1_input_embedded, part1_real_expected);
+}
+
+fn checkPart2(input: []const u8, expected: usize) !void {
+    var reader: std.Io.Reader = .fixed(input);
+    const result = try part2(testing.allocator, &reader);
+    try testing.expectEqual(expected, result);
+}
+
+test "day 8 part 2" {
+    // Currently not implemented
+    try checkPart2(embedded_example, part2_example_expected);
+    try checkPart2(embedded_input, part2_real_expected);
+}
+
+fn checkRun(input: Part1Input, expected_part1: u64, expected_part2: u64) !void {
+    const input_path = input.input;
+    const allocator = testing.allocator;
+    var allocating_writer: std.Io.Writer.Allocating = .init(allocator);
+    defer allocating_writer.deinit();
+    const writer = &allocating_writer.writer;
+    try run(std.testing.io, allocator, writer, input_path, input.connections);
+    const output = try allocating_writer.toOwnedSlice();
+    defer allocator.free(output);
+
+    const part1_str = try std.fmt.allocPrint(allocator, "{d}", .{expected_part1});
+    defer allocator.free(part1_str);
+    const part2_str = try std.fmt.allocPrint(allocator, "{d}", .{expected_part2});
+    defer allocator.free(part2_str);
+
+    try std.testing.expect(std.mem.containsAtLeast(u8, output, 1, part1_str));
+    try std.testing.expect(std.mem.containsAtLeast(u8, output, 1, part2_str));
+}
+
+const run_input_example = Part1Input{
+    .input = data_day_8.example_path_str,
+    .connections = 10,
+};
+const run_input_real = Part1Input{
+    .input = data_day_8.input_path_str,
+    .connections = 1000,
+};
+
+test "day 8 run" {
+    try checkRun(run_input_example, part1_example_expected, part2_example_expected);
+    try checkRun(run_input_real, part1_real_expected, part2_real_expected);
 }

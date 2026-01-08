@@ -102,7 +102,12 @@ pub fn main(init: std.process.Init) !void {
                 try day7.benchmark(allocator, backing_allocator, io, "data/2025/day7/input.txt", stdout, benchmark_runs);
             }
         },
-        8 => try day8.run(io, allocator),
+        8 => {
+            try day8.run(io, allocator, stdout, data_2025.day8.input_path_str, 1000);
+            if (benchmark) {
+                try day8.benchmark(allocator, backing_allocator, io, "data/2025/day8/input.txt", stdout, 100);
+            }
+        },
         else => {
             stderr.print("Unknown day: {d}\n", .{day}) catch {};
             stderr.flush() catch {};
