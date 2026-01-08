@@ -210,6 +210,8 @@ pub fn getLowestKIndices(
     @memcpy(k_indices, all_indices[0..k_indices.len]);
 }
 
+// shamelessly stolen and adapted from
+// https://github.com/ziglang/zig/issues/9890#issuecomment-3059720017
 fn nthElementContext(n: usize, a: usize, b: usize, context: anytype) void {
     var left = a;
     var right = b;
@@ -242,23 +244,8 @@ fn nthElementContext(n: usize, a: usize, b: usize, context: anytype) void {
     sort.insertionContext(left, right, context);
 }
 
-// taken from std.sort.pdq because it's a non pub function :(
-fn partition(a: usize, b: usize, pivot: *usize, context: anytype) void {
-    context.swap(a, pivot.*);
-    var i = a + 1;
-    var j = b - 1;
-    while (true) {
-        while (i <= j and context.lessThan(i, a)) i += 1;
-        while (i <= j and !context.lessThan(j, a)) j -= 1;
-        if (i > j) break;
-        context.swap(i, j);
-        i += 1;
-        j -= 1;
-    }
-    context.swap(j, a);
-    pivot.* = j;
-}
-
+// shamelessly stolen and adapted from
+// https://github.com/ziglang/zig/issues/9890#issuecomment-3059720017
 pub fn heapSelectContext(n: usize, a: usize, b: usize, context: anytype) void {
     const len = b - a;
     const n_largest = len - n;
@@ -275,6 +262,23 @@ pub fn heapSelectContext(n: usize, a: usize, b: usize, context: anytype) void {
         siftDown(a, a, heap_end, context);
     }
     context.swap(a, a + n);
+}
+
+// taken from std.sort.pdq because it's a non pub function :(
+fn partition(a: usize, b: usize, pivot: *usize, context: anytype) void {
+    context.swap(a, pivot.*);
+    var i = a + 1;
+    var j = b - 1;
+    while (true) {
+        while (i <= j and context.lessThan(i, a)) i += 1;
+        while (i <= j and !context.lessThan(j, a)) j -= 1;
+        if (i > j) break;
+        context.swap(i, j);
+        i += 1;
+        j -= 1;
+    }
+    context.swap(j, a);
+    pivot.* = j;
 }
 
 // taken from std.sort because it's a non pub function :(
