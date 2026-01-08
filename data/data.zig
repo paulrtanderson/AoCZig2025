@@ -1,30 +1,24 @@
+const std = @import("std");
+
+fn DayData(comptime path_prefix: []const u8) type {
+    const input_path = path_prefix ++ "/input.txt";
+    const example_path = path_prefix ++ "/example.txt";
+
+    return struct {
+        pub const input = @embedFile(input_path);
+        pub const example = @embedFile(example_path);
+        pub const input_path_str = "data/" ++ input_path;
+        pub const example_path_str = "data/" ++ example_path;
+    };
+}
+
 pub const data_2025 = .{
-    .day1 = .{
-        .input = @embedFile("2025/day1/input.txt"),
-        .example = @embedFile("2025/day1/example.txt"),
-    },
-    .day2 = .{
-        .input = @embedFile("2025/day2/input.txt"),
-        .example = @embedFile("2025/day2/example.txt"),
-    },
-    .day3 = .{
-        .input = @embedFile("2025/day3/input.txt"),
-        .example = @embedFile("2025/day3/example.txt"),
-    },
-    .day4 = .{
-        .input = @embedFile("2025/day4/input.txt"),
-        .example = @embedFile("2025/day4/example.txt"),
-    },
-    .day5 = .{
-        .input = @embedFile("2025/day5/input.txt"),
-        .example = @embedFile("2025/day5/example.txt"),
-    },
-    .day6 = .{
-        .input = @embedFile("2025/day6/input.txt"),
-        .example = @embedFile("2025/day6/example.txt"),
-    },
-    .day7 = .{
-        .input = @embedFile("2025/day7/input.txt"),
-        .example = @embedFile("2025/day7/example.txt"),
-    },
+    .day1 = DayData("2025/day1"),
+    .day2 = DayData("2025/day2"),
+    .day3 = DayData("2025/day3"),
+    .day4 = DayData("2025/day4"),
+    .day5 = DayData("2025/day5"),
+    .day6 = DayData("2025/day6"),
+    .day7 = DayData("2025/day7"),
+    .day8 = DayData("2025/day8"),
 };

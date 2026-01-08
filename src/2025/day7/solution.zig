@@ -26,8 +26,8 @@ pub fn part1and2(r: *std.Io.Reader) !struct { u64, u64 } {
     beam_timelines_columns[std.mem.findScalar(u8, first_line, 'S').?] = 1;
 
     var num_splits: usize = 0;
-    while (try r.takeDelimiter('\n')) |line| {
-        _ = r.discardDelimiterInclusive('\n') catch {};
+    var row_index: usize = 1;
+    while (try r.takeDelimiter('\n')) |line| : (_ = r.discardDelimiterInclusive('\n') catch {}) { // skip every other line
         for (line, 0..) |char, column| {
             switch (char) {
                 '.' => {},
@@ -39,9 +39,12 @@ pub fn part1and2(r: *std.Io.Reader) !struct { u64, u64 } {
                         num_splits += 1;
                     }
                 },
-                else => unreachable,
+                else => {
+                    std.debug.panic("Unexpected character: {d}\n on line {d}: {s} at column {d}", .{ char, row_index, line, column });
+                },
             }
         }
+        row_index += 1;
     }
     var num_timelines: usize = 0;
     for (beam_timelines_columns) |beam_timelines_column| {
@@ -89,7 +92,8 @@ pub fn part2recursive(allocator: std.mem.Allocator, inputdata: []const u8) !u64 
 const IterativeArgs = struct {
     data: []const u8,
 };
-fn timeIterative(context: IterativeArgs) !u64 {
+
+fn timeIterative(context: IterativeArgs, _: std.mem.Allocator) !u64 {
     var reader: std.Io.Reader = .fixed(context.data);
     var timer: std.time.Timer = try .start();
     const res = try part1and2(&reader);
@@ -100,33 +104,30 @@ fn timeIterative(context: IterativeArgs) !u64 {
 
 const RecursiveArgs = struct {
     data: []const u8,
-    allocator: std.mem.Allocator,
 };
-fn timeRecursive(context: RecursiveArgs) !u64 {
+
+fn timeRecursive(context: RecursiveArgs, allocator: std.mem.Allocator) !u64 {
     var timer: std.time.Timer = try .start();
-    const res = try part2recursive(context.allocator, context.data);
+    const res = try part2recursive(allocator, context.data);
     const elapsed = timer.read();
     std.mem.doNotOptimizeAway(res);
     return elapsed;
 }
 
-pub fn benchmark(allocator: std.mem.Allocator, io: std.Io, filepath: []const u8, stdout: *std.Io.Writer) !void {
-    const runs = 10000;
-
+pub fn benchmark(allocator: std.mem.Allocator, backing_allocator: std.mem.Allocator, io: std.Io, filepath: []const u8, stdout: *std.Io.Writer, runs: u32) !void {
     const dir = std.Io.Dir.cwd();
     const file_data = try dir.readFileAlloc(io, filepath, allocator, .unlimited);
     defer allocator.free(file_data);
     const input_data = file_data[0 .. file_data.len - 1];
 
-    try utils.benchmarkGeneric(IterativeArgs{ .data = input_data }, timeIterative, "Part 1 & 2 Iterative", stdout, runs);
-
+    try utils.benchmarkGeneric(allocator, backing_allocator, IterativeArgs{ .data = input_data }, timeIterative, "Part 1 & 2 Iterative", stdout, runs);
     try stdout.flush();
-
-    try utils.benchmarkGeneric(RecursiveArgs{ .data = input_data, .allocator = allocator }, timeRecursive, "Part 2 Recursive", stdout, runs);
+    try utils.benchmarkGeneric(allocator, backing_allocator, RecursiveArgs{ .data = input_data }, timeRecursive, "Part 2 Recursive", stdout, runs);
+    try stdout.flush();
+    std.debug.print("finished the benchmark\n", .{});
 }
 
-pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
-    const filepath = "data/2025/day7/input.txt";
+pub fn run(io: std.Io, stdout: *std.Io.Writer, filepath: []const u8) !void {
     const dir = std.Io.Dir.cwd();
 
     const answer1, const answer2 = blk: {
@@ -137,21 +138,15 @@ pub fn run(io: std.Io, allocator: std.mem.Allocator) !void {
         break :blk try part1and2(&reader.interface);
     };
 
-    var buffer: [1024]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(io, &buffer);
-    const stdout = &stdout_writer.interface;
-
     try stdout.print("Answer part 1: {d}\n", .{answer1});
     try stdout.print("Answer part 2: {d}\n", .{answer2});
 
     try stdout.flush();
-
-    try benchmark(allocator, io, filepath, stdout);
-
-    try stdout.flush();
 }
-const embedded_input = @import("data").data_2025.day7.input;
-const embedded_example = @import("data").data_2025.day7.example;
+
+const day7_data = @import("data").data_2025.day7;
+const embedded_input = day7_data.input;
+const embedded_example = day7_data.example;
 
 const part1_example_expected = 21;
 const part2_example_expected = 40;
@@ -172,6 +167,24 @@ fn checkRecursive(data: []const u8, expected: u64) !void {
     try std.testing.expectEqual(expected, result);
 }
 
+fn checkRun(input_path: []const u8, expected_part1: u64, expected_part2: u64) !void {
+    const allocator = std.testing.allocator;
+    var allocating_writer: std.Io.Writer.Allocating = .init(allocator);
+    defer allocating_writer.deinit();
+    const writer = &allocating_writer.writer;
+    try run(std.testing.io, writer, input_path);
+    const output = try allocating_writer.toOwnedSlice();
+    defer allocator.free(output);
+
+    const part1_str = try std.fmt.allocPrint(allocator, "{d}", .{expected_part1});
+    defer allocator.free(part1_str);
+    const part2_str = try std.fmt.allocPrint(allocator, "{d}", .{expected_part2});
+    defer allocator.free(part2_str);
+
+    try std.testing.expect(std.mem.containsAtLeast(u8, output, 1, part1_str));
+    try std.testing.expect(std.mem.containsAtLeast(u8, output, 1, part2_str));
+}
+
 const example_expected = .{ part1_example_expected, part2_example_expected };
 const real_expected = .{ part1_real_expected, part2_real_expected };
 
@@ -183,4 +196,9 @@ test "part 1 & 2 iterative" {
 test "part2 recursive" {
     try checkRecursive(embedded_example, part2_example_expected);
     try checkRecursive(embedded_input, part2_real_expected);
+}
+
+test "run" {
+    try checkRun(day7_data.example_path_str, part1_example_expected, part2_example_expected);
+    try checkRun(day7_data.input_path_str, part1_real_expected, part2_real_expected);
 }

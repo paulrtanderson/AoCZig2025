@@ -70,31 +70,36 @@ pub fn printStats(times: []u64, stdout: *std.Io.Writer) !void {
 }
 
 pub fn benchmarkGeneric(
+    allocator: std.mem.Allocator,
+    backing_allocator: std.mem.Allocator,
     context: anytype,
-    comptime runFn: *const fn (@TypeOf(context)) anyerror!u64,
+    comptime runFn: *const fn (@TypeOf(context), std.mem.Allocator) anyerror!u64,
     label: []const u8,
     stdout: *std.Io.Writer,
-    runs: comptime_int,
+    runs: u32,
 ) !void {
+    var arena = std.heap.ArenaAllocator.init(backing_allocator);
+    defer arena.deinit();
+
     // Warmup
     const warmup_runs = runs / 10;
     for (0..warmup_runs) |_| {
-        const res = runFn(context);
+        const res = runFn(context, arena.allocator());
         std.mem.doNotOptimizeAway(res);
+        _ = arena.reset(.retain_capacity);
     }
 
-    // 3. Benchmarking Logic
-    var run_times: [runs]u64 = undefined;
+    // Benchmarking
+    const run_times = try allocator.alloc(u64, runs);
+    defer allocator.free(run_times);
 
     for (0..runs) |i| {
-        var timer = try std.time.Timer.start();
-        const res = try runFn(context);
-        run_times[i] = timer.read();
-        std.mem.doNotOptimizeAway(res);
+        const res = try runFn(context, arena.allocator());
+        run_times[i] = res;
+        _ = arena.reset(.retain_capacity);
     }
 
-    // ... stats printing ...
     try stdout.print("\n=======================\n", .{});
     try stdout.print("Benchmark results for {s}:\n", .{label});
-    try printStats(&run_times, stdout);
+    try printStats(run_times, stdout);
 }
